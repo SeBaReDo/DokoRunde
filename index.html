@@ -678,7 +678,7 @@
     text-transform: uppercase;
     color: var(--muted);
     padding: 10px 16px;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid var(--border);
     font-weight: 400;
   }
@@ -687,7 +687,11 @@
     padding: 14px 16px;
     border-bottom: 1px solid rgba(42,58,47,0.5);
     vertical-align: middle;
+    text-align: center;
   }
+
+  .ranking-table th:nth-child(2),
+  .ranking-table td:nth-child(2) { text-align: left; }
 
   .ranking-table tr:hover td { background: rgba(255,255,255,0.02); }
   .ranking-table tr:last-child td { border-bottom: none; }
@@ -708,6 +712,33 @@
     font-family: 'Outfit', sans-serif;
     font-size: 18px;
     font-weight: 700;
+  }
+
+  .centered-bar-track {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    overflow: hidden;
+    min-width: 120px;
+  }
+
+  .centered-bar-zero {
+    position: absolute;
+    left: 50%;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: rgba(255,255,255,0.2);
+    transform: translateX(-50%);
+    z-index: 1;
+  }
+
+  .centered-bar-fill {
+    position: absolute;
+    top: 0; bottom: 0;
+    border-radius: 4px;
+    transition: width 0.6s ease, left 0.6s ease;
   }
 
   .score-bar-wrap {
@@ -852,6 +883,187 @@
     .ranking-table td:nth-child(7),
     .ranking-table td:nth-child(8) { display: none; }
   }
+
+  /* ── Head-to-Head ── */
+  .h2h-matrix {
+    margin-top: 28px;
+    overflow-x: auto;
+  }
+
+  .h2h-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 500px;
+  }
+
+  .h2h-table th, .h2h-table td {
+    padding: 0;
+    text-align: center;
+  }
+
+  .h2h-col-header {
+    padding: 0 0 12px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .h2h-row-header {
+    padding: 0 20px 0 0;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .h2h-cell {
+    padding: 5px;
+  }
+
+  .h2h-inner {
+    border-radius: 6px;
+    width: 100%;
+    min-width: 90px;
+    height: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: transform 0.2s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .h2h-inner:hover { transform: scale(1.04); }
+
+  .h2h-self {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+  }
+
+  .h2h-score {
+    font-family: 'Outfit', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .h2h-record {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.5px;
+  }
+
+  .h2h-label {
+    position: absolute;
+    top: 4px; left: 5px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  @media (max-width: 700px) {
+    .h2h-inner { min-width: 64px; height: 52px; }
+    .h2h-score { font-size: 15px; }
+    .h2h-col-header { font-size: 11px; }
+    .h2h-row-header { font-size: 11px; padding-right: 10px; }
+  }
+
+  /* ── Orte ── */
+  #orte-grid {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+
+  .ort-tile {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.25s, transform 0.25s;
+  }
+  .ort-tile:hover { border-color: var(--gold-dim); transform: translateY(-3px); }
+
+  .ort-tile::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--tile-color);
+    opacity: 0.7;
+  }
+
+  .ort-tile-count { display: none; }
+
+  .ort-bar-track {
+    height: 3px;
+    background: var(--tile-color);
+    border-radius: 0 0 8px 8px;
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+  }
+
+  .ort-bar-fill { display: none; }
+
+  .ort-tile-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--tile-color);
+    margin-bottom: 3px;
+  }
+
+  .ort-tile-loc {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
+
+  .ort-tile-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 7px;
+  }
+
+  .ort-tile-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+  }
+
+  .ort-tile-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .ort-bar-track {
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+
+  .ort-bar-fill {
+    height: 4px;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  @media (max-width: 900px) { #orte-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 600px) { #orte-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
 </head>
 <body>
@@ -871,6 +1083,8 @@
   <a class="nav-item" onclick="navScrollTo('sec-ranking')"><span class="nav-icon">🏆</span>Ranking</a>
   <a class="nav-item" onclick="navScrollTo('sec-abende')"><span class="nav-icon">🗓</span>Abende</a>
   <a class="nav-item" onclick="navScrollTo('sec-events')"><span class="nav-icon">✨</span>Events</a>
+  <a class="nav-item" onclick="navScrollTo('sec-h2h')"><span class="nav-icon">⚡</span>Head-to-Head</a>
+  <a class="nav-item" onclick="navScrollTo('sec-orte')"><span class="nav-icon">🏠</span>Orte</a>
 </nav>
 
 <!-- ── Global Stats ── -->
@@ -926,6 +1140,24 @@
     <div class="section-title">Besondere Ereignisse</div>
     <div class="section-sub">Über alle Spielabende</div>
     <div class="events-stats-grid" id="events-grid"></div>
+  </div>
+</section>
+
+<!-- ── Head-to-Head ── -->
+<section id="sec-h2h">
+  <div class="container">
+    <div class="section-title">⚡ Head-to-Head</div>
+    <div class="section-sub">Wer setzt sich durch, wenn zwei aufeinandertreffen? (Punkte pro gemeinsamem Abend)</div>
+    <div id="h2h-wrap"></div>
+  </div>
+</section>
+
+<!-- ── Orte ── -->
+<section id="sec-orte">
+  <div class="container">
+    <div class="section-title">🏠 Spielorte</div>
+    <div class="section-sub">Gastgeber — Abende — Heimbilanz</div>
+    <div id="orte-grid"></div>
   </div>
 </section>
 
@@ -1119,14 +1351,17 @@ const maxAbs = Math.max(...PLAYERS.map(p=>Math.abs(DATA.final[p])));
 // Pre-compute per-player stats
 const playerStats = {};
 PLAYERS.forEach(p => {
-  const scores = DATA.sessions.map(s => s.scores[p]);
-  const n = DATA.sessions.length;
+  const absentDates = Object.entries(DATA.absences).filter(([,pl]) => pl.includes(p)).map(([d]) => d);
+  const attendedSessions = DATA.sessions.filter(s => !absentDates.includes(s.date));
+  const scores = attendedSessions.map(s => s.scores[p]);
+  const n = attendedSessions.length;
   const best  = Math.max(...scores);
   const worst = Math.min(...scores);
   const avg   = DATA.final[p] / n;
   const plusCount  = scores.filter(v => v > 0).length;
   const minusCount = scores.filter(v => v < 0).length;
-  playerStats[p] = { best, worst, avg, plusCount, minusCount };
+  const absentCount = absentDates.length;
+  playerStats[p] = { best, worst, avg, plusCount, minusCount, absentCount };
 });
 
 document.getElementById('ranking-table').innerHTML = `
@@ -1139,29 +1374,34 @@ document.getElementById('ranking-table').innerHTML = `
     <th title="Bestes Einzelergebnis">Bestes</th>
     <th title="Schlechtestes Einzelergebnis">Schlechtestes</th>
     <th title="Abende im Plus vs. Minus">Plus / Minus</th>
+    <th title="Abwesende Abende">Abwesend</th>
   </tr></thead>
   <tbody>
   ${sorted.map((p, i) => {
     const f    = DATA.final[p];
     const st   = playerStats[p];
-    const barW = Math.round(Math.abs(f) / maxAbs * 160);
-    const barColor = f >= 0 ? COLORS[p] : '#c0392b88';
+    const barPct  = Math.round(Math.abs(f) / maxAbs * 50); // max 50% of half-width
+    const barLeft  = f < 0 ? `${50 - barPct}%` : '50%';
+    const barWidth = `${barPct}%`;
+    const barColor = f >= 0 ? COLORS[p] : '#e07070';
     const sign = v => v > 0 ? '+' : '';
     const cls  = v => v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral';
     const avg  = st.avg.toFixed(1);
 
     const absCount = Object.values(DATA.absences).filter(arr => arr.includes(p)).length;
-    const attendedStr = absCount > 0 ? `<span style="font-size:11px;color:#e8874a;margin-left:6px;font-weight:400">${absCount}× gefehlt</span>` : '';
     return `<tr class="rank-${i+1}">
-      <td><span class="rank-num">${i+1}</span></td>
-      <td><span class="rank-name" style="color:${COLORS[p]}">${p}</span>${attendedStr}</td>
+      <td><span class="rank-num" style="color:${COLORS[p]}">${i+1}</span></td>
+      <td><span class="rank-name" style="color:${COLORS[p]}">${p}</span></td>
       <td style="font-size:17px; letter-spacing:2px; color:var(--gold)">
         ${Array.from({length:DATA.wins[p]},()=>'★').join('')||'—'}
       </td>
       <td>
-        <div class="score-bar-wrap">
-          <div class="score-bar" style="width:${barW}px;background:${barColor}"></div>
-          <span class="score-val ${cls(f)}">${sign(f)}${f}</span>
+        <div class="score-bar-wrap" style="flex-direction:column;gap:4px;align-items:stretch">
+          <div class="centered-bar-track">
+            <div class="centered-bar-zero"></div>
+            <div class="centered-bar-fill" style="left:${barLeft};width:${barWidth};background:${barColor}"></div>
+          </div>
+          <span class="score-val ${cls(f)}" style="text-align:center">${sign(f)}${f}</span>
         </div>
       </td>
       <td class="stat-mini ${cls(parseFloat(avg))}">${sign(parseFloat(avg))}${avg}</td>
@@ -1171,6 +1411,11 @@ document.getElementById('ranking-table').innerHTML = `
         <span style="color:var(--green-bright)">${st.plusCount}✓</span>
         <span style="color:var(--muted); margin:0 3px">/</span>
         <span style="color:#e07070">${st.minusCount}✗</span>
+      </td>
+      <td class="stat-mini">
+        ${st.absentCount > 0
+          ? `<span style="color:#e8874a">${st.absentCount}×</span>`
+          : `<span style="color:var(--muted)">—</span>`}
       </td>
     </tr>`;
   }).join('')}
@@ -1307,9 +1552,131 @@ document.getElementById('events-grid').innerHTML = [
     <div class="event-stat-icon">${e.icon}</div>
     <div class="event-stat-num" style="${e.type==='win' ? 'color:var(--green-bright)' : e.type==='loss' ? 'color:#e07070' : ''}">${e.num}</div>
     <div class="event-stat-name">${e.name}</div>
-    ${e.sub ? `<div class="event-stat-player" style="color:${e.subColor}">${e.sub}</div><div style="font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:1px;text-transform:uppercase">${e.unit||''}</div>` : ''}
+    ${e.sub ? `<div class="event-stat-player" style="color:${e.subColor}">${e.sub}</div>` : ''}
   </div>
 `).join('');
+
+// ── Head-to-Head ──
+const ABSENCES_MAP = {
+  '11.07.2025': ['Andy'],
+  '29.08.2025': ['Fabian'],
+  '19.09.2025': ['Chris'],
+  '24.10.2025': ['Chris'],
+};
+
+const h2h = {};
+PLAYERS.forEach(a => {
+  h2h[a] = {};
+  PLAYERS.forEach(b => {
+    if (a === b) return;
+    const shared = DATA.sessions.filter(s => {
+      const absent = ABSENCES_MAP[s.date] || [];
+      return !absent.includes(a) && !absent.includes(b);
+    });
+    const wins  = shared.filter(s => s.scores[a] > s.scores[b]).length;
+    const total = shared.length;
+    h2h[a][b] = { wins, total, losses: total - wins };
+  });
+});
+
+const h2hWrap = document.getElementById('h2h-wrap');
+h2hWrap.className = 'h2h-matrix';
+
+let tableHtml = `<table class="h2h-table"><thead><tr>
+  <th></th>
+  ${PLAYERS.map(p => `<th class="h2h-col-header" style="color:${COLORS[p]}">${p}</th>`).join('')}
+</tr></thead><tbody>`;
+
+PLAYERS.forEach(rowP => {
+  tableHtml += `<tr><td class="h2h-row-header" style="color:${COLORS[rowP]}">${rowP}</td>`;
+  PLAYERS.forEach(colP => {
+    if (rowP === colP) {
+      tableHtml += `<td class="h2h-cell"><div class="h2h-inner h2h-self"><div style="font-size:18px;color:var(--border)">—</div></div></td>`;
+      return;
+    }
+    const { wins, total, losses } = h2h[rowP][colP];
+    const ratio = total > 0 ? wins / total : 0.5;
+
+    // Background: red (0) → dark neutral (0.5) → player color (1.0)
+    const intensity = Math.abs(ratio - 0.5) * 2; // 0 at 50/50, 1 at 0% or 100%
+    const alpha = 0.1 + intensity * 0.35;
+    let bg, borderColor;
+    if (ratio >= 0.5) {
+      const c = COLORS[rowP];
+      bg = `${c}${Math.round(alpha * 255).toString(16).padStart(2,'0')}`;
+      borderColor = `${c}${Math.round((alpha + 0.15) * 255).toString(16).padStart(2,'0')}`;
+    } else {
+      bg = `rgba(180,40,40,${alpha.toFixed(2)})`;
+      borderColor = `rgba(180,40,40,${(alpha + 0.15).toFixed(2)})`;
+    }
+    const textColor = '#ddd8cc';
+    tableHtml += `<td class="h2h-cell">
+      <div class="h2h-inner" style="background:${bg};border:1px solid ${borderColor}">
+        <div class="h2h-score" style="color:${textColor}">${wins}<span style="opacity:0.4;font-weight:400"> /${total}</span></div>
+        <div class="h2h-record">${wins}S · ${losses}N</div>
+      </div></td>`;
+  });
+  tableHtml += `</tr>`;
+});
+
+tableHtml += `</tbody></table>
+<div style="display:flex;gap:20px;margin-top:12px;font-size:12px;color:var(--muted);flex-wrap:wrap">
+  <span>Grün = dominant (≥70% Siege) &nbsp;·&nbsp; Rot = hinten (≤30%) &nbsp;·&nbsp; Grau = ausgeglichen &nbsp;·&nbsp; Zeile schlägt Spalte</span>
+</div>`;
+
+h2hWrap.innerHTML = tableHtml;
+
+// ── Orte ──
+// ── Orte ──
+const HOST_PLAYER = { Fabian:'Fabian', Andy:'Andy', Chris:'Chris', Basti:'Sebastian', Frede:'Frede' };
+const HOST_LOC    = { Fabian:'Phönixsee, DO', Andy:'Altenberge b. MS', Chris:'Herdecke', Basti:'Dortmunder Süden', Frede:'Phönixsee, DO' };
+
+const orteMap = {};
+DATA.sessions.forEach(s => {
+  if (!orteMap[s.ort]) orteMap[s.ort] = [];
+  orteMap[s.ort].push(s);
+});
+const orteSorted = Object.entries(orteMap).sort((a,b) => {
+  const scoreA = a[1].map(s => s.scores[HOST_PLAYER[a[0]] || a[0]] ?? 0).reduce((x,y) => x+y, 0);
+  const scoreB = b[1].map(s => s.scores[HOST_PLAYER[b[0]] || b[0]] ?? 0).reduce((x,y) => x+y, 0);
+  return scoreB - scoreA;
+});
+const maxCount = orteSorted[0][1].length;
+
+document.getElementById('orte-grid').innerHTML = orteSorted.map(([host, sessions]) => {
+  const p     = HOST_PLAYER[host] || host;
+  const color = COLORS[p] || 'var(--gold)';
+  const loc   = HOST_LOC[host] || '';
+  const count = sessions.length;
+  const scores = sessions.map(s => s.scores[p] ?? 0);
+  const total  = scores.reduce((a,b) => a+b, 0);
+  const wins   = sessions.filter(s => s.winner === p).length;
+  const sign   = v => v > 0 ? '+' : '';
+  const valCls = v => v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral';
+  const barPct = Math.round((count / maxCount) * 100);
+
+  return `
+    <div class="ort-tile" style="--tile-color:${color}">
+      <div class="ort-tile-count">${count}</div>
+      <div class="ort-tile-name">${p}</div>
+      <div class="ort-tile-loc">📍 ${loc}</div>
+      <div class="ort-tile-row">
+        <span class="ort-tile-label">Abende</span>
+        <span class="ort-tile-val" style="color:var(--gold-light)">${count}×</span>
+      </div>
+      <div class="ort-tile-row">
+        <span class="ort-tile-label">Heimbilanz</span>
+        <span class="ort-tile-val ${valCls(total)}">${sign(total)}${total}</span>
+      </div>
+      <div class="ort-tile-row">
+        <span class="ort-tile-label">Heimsiege</span>
+        <span class="ort-tile-val" style="color:${wins > 0 ? 'var(--gold)' : 'var(--muted)'}">${wins} / ${count}</span>
+      </div>
+      <div class="ort-bar-track">
+        <div class="ort-bar-fill" style="width:${barPct}%;background:${color}"></div>
+      </div>
+    </div>`;
+}).join('');
 
 // ── Nav scroll + active highlight ──
 function navScrollTo(id) {
@@ -1319,7 +1686,7 @@ function navScrollTo(id) {
   const top = el.getBoundingClientRect().top + window.scrollY - navH - 8;
   window.scrollTo({ top, behavior: 'smooth' });}
 
-const sections = ['sec-uebersicht','sec-spieler','sec-verlauf','sec-ranking','sec-abende','sec-events'];
+const sections = ['sec-uebersicht','sec-spieler','sec-verlauf','sec-ranking','sec-abende','sec-events','sec-h2h','sec-orte'];
 const navItems = document.querySelectorAll('.nav-item');
 
 const observer = new IntersectionObserver(entries => {
@@ -1544,20 +1911,9 @@ function toggleSession(idx) {
   const ground = document.createElement('div');
   ground.className = 'podium-ground';
 
-  const taglineGrid = document.createElement('div');
-  taglineGrid.className = 'podium-tagline';
-  ranked.forEach((p, i) => {
-    const card = document.createElement('div');
-    card.className = 'tagline-card';
-    card.style.borderTopColor = COLORS[p];
-    card.innerHTML = `<strong style="color:${COLORS[p]}">Platz ${i+1} — ${p}</strong>${taglines[i].desc}`;
-    taglineGrid.appendChild(card);
-  });
-
   const wrap = document.getElementById('podium-wrap');
   wrap.appendChild(stage);
   wrap.appendChild(ground);
-  wrap.appendChild(taglineGrid);
 })();
 </script>
 </body>
