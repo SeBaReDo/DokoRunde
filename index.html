@@ -748,6 +748,110 @@
     letter-spacing: 1px;
     border-top: 1px solid var(--border);
   }
+
+  /* ══════════════════════════════════
+     MOBILE RESPONSIVE — max 768px
+  ══════════════════════════════════ */
+  @media (max-width: 768px) {
+
+    /* Header */
+    header { padding: 36px 16px 32px; }
+    header::before { font-size: 100px; letter-spacing: 12px; top: -10px; }
+    h1 { font-size: 36px; }
+    .header-sub { font-size: 13px; }
+
+    /* Container padding */
+    .container { padding: 0 14px; }
+    section { padding: 36px 0; }
+
+    /* Nav — horizontal scroll */
+    .nav { padding: 0 8px; gap: 0; justify-content: flex-start; }
+    .nav-item { padding: 12px 12px; font-size: 12px; letter-spacing: 1px; }
+    .nav-icon { font-size: 14px; }
+
+    /* Section titles */
+    .section-title { font-size: 22px; }
+
+    /* Global stats — 3 columns */
+    .global-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat-chip-val { font-size: 26px; }
+
+    /* Player cards — 2 columns */
+    .players-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .player-card { padding: 16px 14px; }
+    .player-name { font-size: 16px; }
+    .player-stat-val { font-size: 20px; }
+    .player-card-suit { font-size: 36px; }
+
+    /* Chart */
+    .chart-wrapper { padding: 16px 10px; }
+
+    /* Ranking — hide score bar, show value only */
+    .ranking-scroll { border-radius: 4px; }
+    .ranking-table { min-width: 100%; font-size: 13px; }
+    .ranking-table th { padding: 8px 8px; font-size: 10px; }
+    .ranking-table td { padding: 10px 8px; }
+    .rank-name { font-size: 15px; }
+    .rank-num { font-size: 16px; }
+    .score-bar { display: none; }
+    .score-val { font-size: 15px; min-width: auto; }
+    .stat-mini { font-size: 13px; padding: 10px 6px; }
+
+    /* Hide less important ranking columns on mobile */
+    .ranking-table th:nth-child(5),
+    .ranking-table th:nth-child(6),
+    .ranking-table td:nth-child(5),
+    .ranking-table td:nth-child(6) { display: none; }
+
+    /* Sessions */
+    .session-header { grid-template-columns: 100px 1fr auto; gap: 8px; padding: 12px 14px; }
+    .session-date { font-size: 13px; }
+    .session-host { font-size: 12px; }
+    .session-rounds-badge { font-size: 10px; }
+    .session-scores-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .score-cell { padding: 8px 4px; }
+    .score-cell-val { font-size: 18px; }
+    .score-cell-name { font-size: 10px; }
+    .session-body { padding: 12px 14px 16px; }
+
+    /* Events grid — 2x4 becomes 2x2 on mobile */
+    .events-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .event-stat-num { font-size: 30px; }
+    .event-stat-icon { font-size: 24px; }
+
+    /* Podium */
+    .podium-stage { gap: 4px; }
+    .podium-name { font-size: 11px; }
+    .podium-score { font-size: 11px; }
+    .podium-label { font-size: 9px; max-width: 70px; }
+    .podium-tagline { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tagline-card { font-size: 11px; padding: 10px 8px; }
+    .tagline-card strong { font-size: 12px; }
+
+    /* Rounds table */
+    .rounds-tbl { font-size: 12px; }
+    .rounds-tbl th { padding: 6px 6px; font-size: 10px; }
+    .rt-cell { padding: 5px 5px; font-size: 12px; }
+    .rt-num { padding: 5px 5px; font-size: 10px; }
+
+    /* Leader badge */
+    .leader-badge { font-size: 9px; padding: 1px 5px; }
+  }
+
+  /* Extra small — max 420px */
+  @media (max-width: 420px) {
+    h1 { font-size: 28px; }
+    .global-grid { grid-template-columns: repeat(2, 1fr); }
+    .session-header { grid-template-columns: 90px 1fr auto; }
+    .session-scores-grid { grid-template-columns: repeat(2, 1fr); }
+    .podium-tagline { grid-template-columns: 1fr; }
+
+    /* Hide worst/best columns in ranking on tiny screens */
+    .ranking-table th:nth-child(7),
+    .ranking-table th:nth-child(8),
+    .ranking-table td:nth-child(7),
+    .ranking-table td:nth-child(8) { display: none; }
+  }
 </style>
 </head>
 <body>
