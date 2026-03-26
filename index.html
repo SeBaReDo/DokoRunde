@@ -1165,41 +1165,24 @@
 
 
 <script>
-const DATA = {
-  absences: {
-    "11.07.2025": ["Andy"],
-    "29.08.2025": ["Fabian"],
-    "19.09.2025": ["Chris"],
-    "24.10.2025": ["Chris"]
-  },
-  sessions: [
-    { date:"15.11.2024", ort:"Fabian", rounds:39, scores:{Sebastian:-25,Andy:-29,Frede:71,Fabian:-16,Chris:-1}, winner:"Frede", hochzeit:5, schwein:0, solo:13, bock:36 },
-    { date:"25.01.2025", ort:"Andy",   rounds:46, scores:{Sebastian:-105,Andy:117,Frede:25,Fabian:-30,Chris:-7}, winner:"Andy", hochzeit:6, schwein:0, solo:12, bock:40 },
-    { date:"14.03.2025", ort:"Chris",  rounds:45, scores:{Sebastian:16,Andy:-112,Frede:44,Fabian:92,Chris:-40}, winner:"Fabian", hochzeit:6, schwein:0, solo:14, bock:39 },
-    { date:"09.05.2025", ort:"Basti",  rounds:46, scores:{Sebastian:100,Andy:25,Frede:-88,Fabian:65,Chris:-102}, winner:"Sebastian", hochzeit:0, schwein:0, solo:17, bock:40 },
-    { date:"08.06.2025", ort:"Fabian", rounds:40, scores:{Sebastian:-27,Andy:50,Frede:26,Fabian:-84,Chris:35}, winner:"Andy", hochzeit:4, schwein:0, solo:14, bock:34 },
-    { date:"11.07.2025", ort:"Frede",  rounds:36, scores:{Sebastian:66,Andy:0,Frede:-84,Fabian:60,Chris:-42}, winner:"Sebastian", hochzeit:1, schwein:0, solo:4, bock:25 },
-    { date:"29.08.2025", ort:"Andy",   rounds:44, scores:{Sebastian:-21,Andy:-67,Frede:167,Fabian:0,Chris:-79}, winner:"Frede", hochzeit:4, schwein:0, solo:9, bock:20 },
-    { date:"19.09.2025", ort:"Basti",  rounds:39, scores:{Sebastian:12,Andy:22,Frede:36,Fabian:-70,Chris:0}, winner:"Frede", hochzeit:2, schwein:0, solo:2, bock:16 },
-    { date:"24.10.2025", ort:"Fabian", rounds:29, scores:{Sebastian:-60,Andy:-32,Frede:36,Fabian:56,Chris:0}, winner:"Fabian", hochzeit:5, schwein:0, solo:8, bock:27 },
-    { date:"21.11.2025", ort:"Chris",  rounds:22, scores:{Sebastian:-112,Andy:67,Frede:-49,Fabian:99,Chris:-5}, winner:"Fabian", hochzeit:1, schwein:0, solo:3, bock:21 },
-    { date:"13.03.2026", ort:"Fabian", rounds:43, scores:{Sebastian:115,Andy:-62,Frede:-26,Fabian:-31,Chris:4}, winner:"Sebastian", hochzeit:5, schwein:4, solo:14, bock:34 }
-  ],
-  cumulative: {
-    labels:    ["15.11.2024","25.01.2025","14.03.2025","09.05.2025","08.06.2025","11.07.2025","29.08.2025","19.09.2025","24.10.2025","21.11.2025","13.03.2026"],
-    Sebastian: [-25,-130,-114,-14,-41,25,4,16,-44,-156,-41],
-    Andy:      [-29,88,-24,1,51,51,-16,6,-26,41,-21],
-    Frede:     [71,96,140,52,78,-6,161,197,233,184,158],
-    Fabian:    [-16,-46,46,111,27,87,87,17,73,172,141],
-    Chris:     [-1,-8,-48,-150,-115,-157,-236,-236,-236,-241,-237]
-  },
-  wins:  { Sebastian:3, Andy:2, Frede:3, Fabian:3, Chris:0 },
-  final: { Sebastian:-41, Andy:-21, Frede:158, Fabian:141, Chris:-237 }
-};
-
 const PLAYERS = ['Sebastian','Andy','Frede','Fabian','Chris'];
 const COLORS  = { Sebastian:'#e8874a', Andy:'#4a9ee8', Frede:'#4caf80', Fabian:'#c47ee8', Chris:'#e84a4a' };
 const SUITS   = ['♠','♥','♦','♣','♠'];
+
+fetch('data.json')
+  .then(r => r.json())
+  .then(function(DATA) {
+    // Berechne cumulative, wins und final automatisch aus sessions
+    const _cum = { labels: [] }, _wins = {}, _final = {};
+    PLAYERS.forEach(p => { _cum[p] = []; _wins[p] = 0; _final[p] = 0; });
+    DATA.sessions.forEach(s => {
+      _cum.labels.push(s.date);
+      PLAYERS.forEach(p => { _final[p] += s.scores[p] || 0; _cum[p].push(_final[p]); });
+      if (s.winner) _wins[s.winner] = (_wins[s.winner] || 0) + 1;
+    });
+    DATA.cumulative = _cum;
+    DATA.wins = _wins;
+    DATA.final = _final;
 
 // ── Global Stats ──
 const totalRounds = DATA.sessions.reduce((a,s)=>a+s.rounds,0);
@@ -1557,12 +1540,7 @@ document.getElementById('events-grid').innerHTML = [
 `).join('');
 
 // ── Head-to-Head ──
-const ABSENCES_MAP = {
-  '11.07.2025': ['Andy'],
-  '29.08.2025': ['Fabian'],
-  '19.09.2025': ['Chris'],
-  '24.10.2025': ['Chris'],
-};
+const ABSENCES_MAP = DATA.absences;
 
 const h2h = {};
 PLAYERS.forEach(a => {
@@ -1739,6 +1717,59 @@ function showEasterEgg(el, name, e) {
 function toggleSession(idx) {
   document.getElementById('sess-'+idx).classList.toggle('open');
 }
+
+// ── Podium ──
+(function() {
+  const ranked = [...PLAYERS].sort((a, b) => DATA.final[b] - DATA.final[a]);
+
+  const taglines = [
+    { title: 'König der Karten 👑',  desc: 'Hält die Kasse klein und die Karten groß. Trinkt umsonst! 🍺' },
+    { title: 'Vize-Meister 🥈',      desc: 'Fast König — aber fast zählt nur beim Handgranatenwerfen.' },
+    { title: 'Solider Mittelbau 🃏', desc: 'Weder Held noch Opfer. Statistisch unauffällig.' },
+    { title: 'Beitragszahler 😅',    desc: 'Finanziert zuverlässig die Gewinne der anderen.' },
+    { title: 'Kassenwart 💸',        desc: 'Danke fürs Sponsoring. Die Runde Bier geht auf dich!' },
+  ];
+
+  const avatarSizes  = [72, 54, 44, 36, 30];
+  const blockWidths  = [130, 130, 130, 130, 130];
+  const blockHeights = [200, 155, 115, 80, 50];
+  const displayOrder = [0, 1, 2, 3, 4];
+
+  const stage = document.createElement('div');
+  stage.className = 'podium-stage';
+
+  displayOrder.forEach(rankIdx => {
+    const p = ranked[rankIdx];
+    const color = COLORS[p];
+    const sign = DATA.final[p] > 0 ? '+' : '';
+    const scoreColor = DATA.final[p] >= 0 ? 'var(--green-bright)' : '#e07070';
+    const isFirst = rankIdx === 0;
+    const avatarEmojis = ['🏆','🥂','🃏','😬','🍺'];
+
+    const slot = document.createElement('div');
+    slot.className = 'podium-slot';
+    slot.style.animationDelay = rankIdx * 0.1 + 's';
+    slot.innerHTML = `
+      <div class="podium-avatar" style="font-size:${avatarSizes[rankIdx]}px; animation-delay:${rankIdx*0.15}s">${isFirst ? '🏆' : avatarEmojis[rankIdx]}</div>
+      <div class="podium-name" style="color:${color}">${p}</div>
+      <div class="podium-score" style="color:${scoreColor}">${sign}${DATA.final[p]}</div>
+      <div class="podium-label">${taglines[rankIdx].title}</div>
+      <div class="podium-block" style="width:${blockWidths[rankIdx]}px; height:${blockHeights[rankIdx]}px; background:${color}20; border:1px solid ${color}40; border-bottom:none;">
+        <div class="podium-rank-num" style="color:${color}">${rankIdx + 1}</div>
+      </div>
+    `;
+    stage.appendChild(slot);
+  });
+
+  const ground = document.createElement('div');
+  ground.className = 'podium-ground';
+
+  const wrap = document.getElementById('podium-wrap');
+  wrap.appendChild(stage);
+  wrap.appendChild(ground);
+})();
+
+}); // end fetch('data.json')
 </script>
 
 <!-- ── Podium ── -->
@@ -1863,58 +1894,5 @@ function toggleSession(idx) {
   }
 </style>
 
-<script>
-(function() {
-  const ranked = [...PLAYERS].sort((a, b) => DATA.final[b] - DATA.final[a]);
-
-  const taglines = [
-    { title: 'König der Karten 👑',  desc: 'Hält die Kasse klein und die Karten groß. Trinkt umsonst! 🍺' },
-    { title: 'Vize-Meister 🥈',      desc: 'Fast König — aber fast zählt nur beim Handgranatenwerfen.' },
-    { title: 'Solider Mittelbau 🃏', desc: 'Weder Held noch Opfer. Statistisch unauffällig.' },
-    { title: 'Beitragszahler 😅',    desc: 'Finanziert zuverlässig die Gewinne der anderen.' },
-    { title: 'Kassenwart 💸',        desc: 'Danke fürs Sponsoring. Die Runde Bier geht auf dich!' },
-  ];
-
-  const avatarSizes  = [72, 54, 44, 36, 30];
-  const blockWidths  = [130, 130, 130, 130, 130];
-  const blockHeights = [200, 155, 115, 80, 50];
-  // Display order: 1st left → 5th right
-  const displayOrder = [0, 1, 2, 3, 4];
-
-  const stage = document.createElement('div');
-  stage.className = 'podium-stage';
-
-  displayOrder.forEach(rankIdx => {
-    const p = ranked[rankIdx];
-    const color = COLORS[p];
-    const sign = DATA.final[p] > 0 ? '+' : '';
-    const scoreColor = DATA.final[p] >= 0 ? 'var(--green-bright)' : '#e07070';
-    const isFirst = rankIdx === 0;
-    const rankEmojis = ['🥇','🥈','🥉','4️⃣','5️⃣'];
-    const avatarEmojis = ['🏆','🥂','🃏','😬','🍺'];
-
-    const slot = document.createElement('div');
-    slot.className = 'podium-slot';
-    slot.style.animationDelay = rankIdx * 0.1 + 's';
-    slot.innerHTML = `
-      <div class="podium-avatar" style="font-size:${avatarSizes[rankIdx]}px; animation-delay:${rankIdx*0.15}s">${isFirst ? '🏆' : avatarEmojis[rankIdx]}</div>
-      <div class="podium-name" style="color:${color}">${p}</div>
-      <div class="podium-score" style="color:${scoreColor}">${sign}${DATA.final[p]}</div>
-      <div class="podium-label">${taglines[rankIdx].title}</div>
-      <div class="podium-block" style="width:${blockWidths[rankIdx]}px; height:${blockHeights[rankIdx]}px; background:${color}20; border:1px solid ${color}40; border-bottom:none;">
-        <div class="podium-rank-num" style="color:${color}">${rankIdx + 1}</div>
-      </div>
-    `;
-    stage.appendChild(slot);
-  });
-
-  const ground = document.createElement('div');
-  ground.className = 'podium-ground';
-
-  const wrap = document.getElementById('podium-wrap');
-  wrap.appendChild(stage);
-  wrap.appendChild(ground);
-})();
-</script>
 </body>
 </html>
