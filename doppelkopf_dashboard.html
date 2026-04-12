@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doppelkopf — Die Chronik</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0f0e;
+    --felt: #0f1a14;
+    --card-bg: #141c17;
+    --border: #2a3a2f;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --gold-dim: #7a6130;
+    --green: #2e7d52;
+    --green-bright: #4caf80;
+    --red: #c0392b;
+    --cream: #f0e8d0;
+    --muted: #8a9e8f;
+    --text: #ddd8cc;
+
+    --seb:    #e8874a;
+    --andy:   #4a9ee8;
+    --frede:  #4caf80;
+    --fabian: #c47ee8;
+    --chris:  #e84a4a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Noise Texture Overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 999; opacity: 0.5;
+  }
+
+  /* ── Nav ── */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,15,14,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 14px 18px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+    cursor: pointer;
+  }
+
+  .nav-item:hover { color: var(--cream); border-bottom-color: var(--gold-dim); }
+  .nav-item.active { color: var(--gold-light); border-bottom-color: var(--gold); }
+
+  .nav-icon { font-size: 16px; }
+
+  /* ── Header ── */
+  header {
+    position: relative;
+    text-align: center;
+    padding: 60px 20px 48px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '♠︎ ♥︎ ♦︎ ♣︎';
+    position: absolute;
+    font-size: 200px;
+    color: rgba(201,168,76,0.04);
+    top: -40px; left: 50%;
+    transform: translateX(-50%);
+    letter-spacing: 40px;
+    white-space: nowrap;
+    pointer-events: none;
+    font-family: serif;
+  }
+
+  .header-eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-style: italic;
+    color: var(--gold-dim);
+    font-size: 15px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: clamp(42px, 8vw, 80px);
+    font-weight: 900;
+    color: var(--cream);
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+
+  h1 span {
+    color: var(--gold);
+    font-style: italic;
+  }
+
+  .header-sub {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+
+  .gold-rule {
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 20px auto 0;
+  }
+
+  /* ── Layout ── */
+  .container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+
+  section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+  section:last-child { border-bottom: none; }
+
+  .section-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--cream);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  .section-sub {
+    color: var(--muted);
+    font-size: 14px;
+    font-style: italic;
+    margin-bottom: 32px;
+    letter-spacing: 1px;
+  }
+
+  /* ── Global Stats ── */
+  .global-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-top: 32px;
+  }
+
+  .stat-chip {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 18px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .stat-chip:hover { border-color: var(--gold-dim); }
+
+  .stat-chip::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.6;
+  }
+
+  .stat-chip-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--gold-light);
+    line-height: 1;
+  }
+
+  .stat-chip-label {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  /* ── Player Cards ── */
+  .players-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 900px) { .players-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 600px) { .players-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .player-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px 18px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    animation: fadeUp 0.6s both;
+  }
+
+  .player-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  }
+
+  .player-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--player-color);
+    opacity: 0.7;
+  }
+
+  .player-card-suit {
+    font-size: 48px;
+    opacity: 0.08;
+    position: absolute;
+    top: 8px; right: 12px;
+    line-height: 1;
+    color: var(--player-color);
+  }
+
+  .player-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--player-color);
+    margin-bottom: 16px;
+  }
+
+  .player-stat-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .player-stat { margin-bottom: 8px; }
+
+  .player-stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  .player-stat-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .player-stat-val.positive { color: var(--green-bright); }
+  .player-stat-val.negative { color: #e07070; }
+  .player-stat-val.neutral  { color: var(--cream); }
+
+  .win-dots {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .win-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--gold);
+    opacity: 0.9;
+    box-shadow: 0 0 6px rgba(201,168,76,0.6);
+  }
+
+  .win-dot.absent {
+    background: transparent;
+    border: 1px dashed #555;
+    box-shadow: none;
+    opacity: 0.5;
+  }
+
+  .absent-cell {
+    background: rgba(255,255,255,0.01) !important;
+    border: 1px dashed var(--border) !important;
+    opacity: 0.5;
+  }
+
+  .leader-badge {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: rgba(201,168,76,0.12);
+    border: 1px solid var(--gold-dim);
+    padding: 2px 7px;
+    border-radius: 20px;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  .leader-card {
+    border-color: rgba(201,168,76,0.5) !important;
+    box-shadow:
+      0 0 0 1px rgba(201,168,76,0.2),
+      0 0 20px rgba(201,168,76,0.12),
+      0 0 50px rgba(201,168,76,0.06);
+    animation: fadeUp 0.6s both, goldPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes goldPulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 1px rgba(201,168,76,0.2),
+        0 0 20px rgba(201,168,76,0.12),
+        0 0 50px rgba(201,168,76,0.06);
+    }
+    50% {
+      box-shadow:
+        0 0 0 1px rgba(201,168,76,0.4),
+        0 0 30px rgba(201,168,76,0.22),
+        0 0 70px rgba(201,168,76,0.10);
+    }
+  }
+
+  /* ── Chart Section ── */
+  .chart-wrapper {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px;
+    margin-top: 32px;
+    position: relative;
+  }
+
+  .chart-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--green), var(--gold), var(--green));
+    opacity: 0.4;
+    border-radius: 6px 6px 0 0;
+  }
+
+  canvas { width: 100% !important; }
+
+  /* ── Session Table ── */
+  .sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 32px;
+  }
+
+  .session-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+    animation: fadeUp 0.5s both;
+  }
+
+  .session-card:hover { border-color: var(--gold-dim); }
+
+  .session-header {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    align-items: center;
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.02);
+    cursor: pointer;
+    gap: 16px;
+  }
+
+  .session-date {
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  .session-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .session-host {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .session-host strong { color: var(--cream); }
+
+  .session-rounds-badge {
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .session-winner-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .session-winner-tag span {
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+  }
+
+  .session-body {
+    padding: 16px 20px 20px;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+
+  .session-card.open .session-body { display: block; }
+
+  .session-scores-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 700px) { .session-scores-grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .score-cell {
+    text-align: center;
+    padding: 10px 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+  }
+
+  .score-cell-name {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .score-cell-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .events-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .event-pill {
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid;
+  }
+
+  .event-pill.hochzeit  { color: #e8874a; border-color: rgba(232,135,74,0.4); background: rgba(232,135,74,0.08); }
+  .event-pill.solo      { color: #c47ee8; border-color: rgba(196,126,232,0.4); background: rgba(196,126,232,0.08); }
+  .event-pill.bock      { color: #4a9ee8; border-color: rgba(74,158,232,0.4); background: rgba(74,158,232,0.08); }
+  .event-pill.schwein   { color: #e8c96a; border-color: rgba(232,201,106,0.4); background: rgba(232,201,106,0.08); }
+
+  /* ── Pairing Stats ── */
+  .events-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 32px;
+  }
+
+  .event-stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .event-stat-icon { font-size: 32px; margin-bottom: 8px; }
+  .event-stat-num {
+    font-family: 'Outfit', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--gold-light);
+    line-height: 1;
+  }
+  .event-stat-name {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .event-stat-player {
+    margin-top: 6px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  /* ── Rounds Table ── */
+  .rounds-toggle {
+    margin-top: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .rounds-toggle:hover { background: rgba(255,255,255,0.08); color: var(--cream); border-color: var(--gold-dim); }
+  .rounds-scroll { overflow-x: auto; margin-top: 14px; border-radius: 4px; border: 1px solid var(--border); }
+  .rounds-tbl { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px; }
+  .rounds-tbl thead tr { background: rgba(255,255,255,0.04); border-bottom: 1px solid var(--border); }
+  .rounds-tbl th { padding: 8px 10px; font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; text-align: center; }
+  .rt-row { border-bottom: 1px solid rgba(42,58,47,0.4); transition: background 0.15s; }
+  .rt-row:last-child { border-bottom: none; }
+  .rt-row:hover { background: rgba(255,255,255,0.03); }
+  .rt-row:nth-child(even) { background: rgba(255,255,255,0.015); }
+  .rt-num  { color: var(--muted); font-size: 11px; text-align: center; padding: 6px 8px; }
+  .rt-cell { text-align: center; padding: 6px 8px; font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 13px; }
+  .rt-pos  { color: #4caf80; }
+  .rt-neg  { color: #e07070; }
+  .rt-zero { color: var(--muted); }
+  .rt-abs  { color: rgba(255,255,255,0.15); font-size: 11px; }
+  .rt-evts { text-align: center; padding: 4px 6px; }
+  .rt-evt  { display: inline-block; font-size: 10px; margin: 1px; padding: 1px 5px; border-radius: 8px; }
+  .rt-solo { background: rgba(196,126,232,0.15); color: #c47ee8; border: 1px solid rgba(196,126,232,0.3); }
+  .absent-badge {
+    font-size: 11px;
+    color: #e8874a;
+    border: 1px dashed rgba(232,135,74,0.4);
+    padding: 2px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    user-select: none;
+  }
+  .absent-badge:hover { background: rgba(232,135,74,0.1); border-color: rgba(232,135,74,0.7); }
+
+  .easter-egg-popup {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    animation: eggPop 2.2s ease forwards;
+  }
+
+  .easter-egg-popup .egg-main {
+    background: linear-gradient(135deg, #c9a84c, #e8c96a);
+    color: #0d0f0e;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    padding: 8px 18px;
+    border-radius: 20px;
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(201,168,76,0.5);
+    letter-spacing: 1px;
+  }
+
+  .easter-egg-popup .egg-sub {
+    font-size: 20px;
+  }
+
+  @keyframes eggPop {
+    0%   { opacity: 0; transform: scale(0.5) translateY(0); }
+    15%  { opacity: 1; transform: scale(1.2) translateY(-10px); }
+    30%  { transform: scale(1.0) translateY(-20px); }
+    70%  { opacity: 1; transform: scale(1.0) translateY(-50px); }
+    100% { opacity: 0; transform: scale(0.8) translateY(-80px); }
+  }
+
+  .rt-bock-dot { background: rgba(74,158,232,0.12); color: #4a9ee8; border: 1px solid rgba(74,158,232,0.25); }
+
+  .stat-mini {
+    font-family: 'Outfit', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+    padding: 14px 12px;
+  }
+
+  .ranking-scroll {
+    overflow-x: auto;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin-top: 32px;
+  }
+
+  .ranking-table {
+    margin-top: 0;
+    min-width: 760px;
+  }
+  .ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 32px;
+    font-size: 15px;
+  }
+
+  .ranking-table th {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  .ranking-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(42,58,47,0.5);
+    vertical-align: middle;
+    text-align: center;
+  }
+
+  .ranking-table th:nth-child(2),
+  .ranking-table td:nth-child(2) { text-align: left; }
+
+  .ranking-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .ranking-table tr:last-child td { border-bottom: none; }
+
+  .rank-num {
+    font-family: 'Outfit', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gold-dim);
+    width: 40px;
+  }
+
+  .rank-1 .rank-num { color: var(--gold-light); }
+  .rank-2 .rank-num { color: #c0c0c0; }
+  .rank-3 .rank-num { color: #cd7f32; }
+
+  .rank-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .centered-bar-track {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    overflow: hidden;
+    min-width: 120px;
+  }
+
+  .centered-bar-zero {
+    position: absolute;
+    left: 50%;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: rgba(255,255,255,0.2);
+    transform: translateX(-50%);
+    z-index: 1;
+  }
+
+  .centered-bar-fill {
+    position: absolute;
+    top: 0; bottom: 0;
+    border-radius: 4px;
+    transition: width 0.6s ease, left 0.6s ease;
+  }
+
+  .score-bar-wrap {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .score-bar {
+    height: 8px;
+    border-radius: 4px;
+    min-width: 4px;
+    transition: width 0.8s ease;
+  }
+
+  .score-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .chevron { display: inline-block; transition: transform 0.3s; color: var(--muted); }
+  .session-card.open .chevron { transform: rotate(180deg); }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 13px;
+    font-style: italic;
+    letter-spacing: 1px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ══════════════════════════════════
+     MOBILE RESPONSIVE — max 768px
+  ══════════════════════════════════ */
+  @media (max-width: 768px) {
+
+    /* Header */
+    header { padding: 36px 16px 32px; }
+    header::before { font-size: 100px; letter-spacing: 12px; top: -10px; }
+    h1 { font-size: 36px; }
+    .header-sub { font-size: 13px; }
+
+    /* Container padding */
+    .container { padding: 0 14px; }
+    section { padding: 36px 0; }
+
+    /* Nav — horizontal scroll */
+    .nav { padding: 0 8px; gap: 0; justify-content: flex-start; }
+    .nav-item { padding: 12px 12px; font-size: 12px; letter-spacing: 1px; }
+    .nav-icon { font-size: 14px; }
+
+    /* Section titles */
+    .section-title { font-size: 22px; }
+
+    /* Global stats — 3 columns */
+    .global-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat-chip-val { font-size: 26px; }
+
+    /* Player cards — 2 columns */
+    .players-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .player-card { padding: 16px 14px; }
+    .player-name { font-size: 16px; }
+    .player-stat-val { font-size: 20px; }
+    .player-card-suit { font-size: 36px; }
+
+    /* Chart */
+    .chart-wrapper { padding: 16px 10px; }
+
+    /* Ranking — hide score bar, show value only */
+    .ranking-scroll { border-radius: 4px; }
+    .ranking-table { min-width: 100%; font-size: 13px; }
+    .ranking-table th { padding: 8px 8px; font-size: 10px; }
+    .ranking-table td { padding: 10px 8px; }
+    .rank-name { font-size: 15px; }
+    .rank-num { font-size: 16px; }
+    .score-bar { display: none; }
+    .score-val { font-size: 15px; min-width: auto; }
+    .stat-mini { font-size: 13px; padding: 10px 6px; }
+
+    /* Hide less important ranking columns on mobile */
+    .ranking-table th:nth-child(5),
+    .ranking-table th:nth-child(6),
+    .ranking-table td:nth-child(5),
+    .ranking-table td:nth-child(6) { display: none; }
+
+    /* Sessions */
+    .session-header { grid-template-columns: 100px 1fr auto; gap: 8px; padding: 12px 14px; }
+    .session-date { font-size: 13px; }
+    .session-host { font-size: 12px; }
+    .session-rounds-badge { font-size: 10px; }
+    .session-scores-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .score-cell { padding: 8px 4px; }
+    .score-cell-val { font-size: 18px; }
+    .score-cell-name { font-size: 10px; }
+    .session-body { padding: 12px 14px 16px; }
+
+    /* Events grid — 2x4 becomes 2x2 on mobile */
+    .events-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .event-stat-num { font-size: 30px; }
+    .event-stat-icon { font-size: 24px; }
+
+    /* Podium */
+    .podium-stage { gap: 4px; }
+    .podium-name { font-size: 11px; }
+    .podium-score { font-size: 11px; }
+    .podium-label { font-size: 9px; max-width: 70px; }
+    .podium-tagline { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tagline-card { font-size: 11px; padding: 10px 8px; }
+    .tagline-card strong { font-size: 12px; }
+
+    /* Rounds table */
+    .rounds-tbl { font-size: 12px; }
+    .rounds-tbl th { padding: 6px 6px; font-size: 10px; }
+    .rt-cell { padding: 5px 5px; font-size: 12px; }
+    .rt-num { padding: 5px 5px; font-size: 10px; }
+
+    /* Leader badge */
+    .leader-badge { font-size: 9px; padding: 1px 5px; }
+  }
+
+  /* Extra small — max 420px */
+  @media (max-width: 420px) {
+    h1 { font-size: 28px; }
+    .global-grid { grid-template-columns: repeat(2, 1fr); }
+    .session-header { grid-template-columns: 90px 1fr auto; }
+    .session-scores-grid { grid-template-columns: repeat(2, 1fr); }
+    .podium-tagline { grid-template-columns: 1fr; }
+
+    /* Hide worst/best columns in ranking on tiny screens */
+    .ranking-table th:nth-child(7),
+    .ranking-table th:nth-child(8),
+    .ranking-table td:nth-child(7),
+    .ranking-table td:nth-child(8) { display: none; }
+  }
+
+  /* ── Head-to-Head ── */
+  .h2h-matrix {
+    margin-top: 28px;
+    overflow-x: auto;
+  }
+
+  .h2h-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 500px;
+  }
+
+  .h2h-table th, .h2h-table td {
+    padding: 0;
+    text-align: center;
+  }
+
+  .h2h-col-header {
+    padding: 0 0 12px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .h2h-row-header {
+    padding: 0 20px 0 0;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .h2h-cell {
+    padding: 5px;
+  }
+
+  .h2h-inner {
+    border-radius: 6px;
+    width: 100%;
+    min-width: 90px;
+    height: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: transform 0.2s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .h2h-inner:hover { transform: scale(1.04); }
+
+  .h2h-self {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+  }
+
+  .h2h-score {
+    font-family: 'Outfit', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .h2h-record {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.5px;
+  }
+
+  .h2h-label {
+    position: absolute;
+    top: 4px; left: 5px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  @media (max-width: 700px) {
+    .h2h-inner { min-width: 64px; height: 52px; }
+    .h2h-score { font-size: 15px; }
+    .h2h-col-header { font-size: 11px; }
+    .h2h-row-header { font-size: 11px; padding-right: 10px; }
+  }
+
+  /* ── Orte ── */
+  #orte-grid {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+
+  .ort-tile {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.25s, transform 0.25s;
+  }
+  .ort-tile:hover { border-color: var(--gold-dim); transform: translateY(-3px); }
+
+  .ort-tile::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--tile-color);
+    opacity: 0.7;
+  }
+
+  .ort-tile-count { display: none; }
+
+  .ort-bar-track {
+    height: 3px;
+    background: var(--tile-color);
+    border-radius: 0 0 8px 8px;
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+  }
+
+  .ort-bar-fill { display: none; }
+
+  .ort-tile-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--tile-color);
+    margin-bottom: 3px;
+  }
+
+  .ort-tile-loc {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
+
+  .ort-tile-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 7px;
+  }
+
+  .ort-tile-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+  }
+
+  .ort-tile-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .ort-bar-track {
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+
+  .ort-bar-fill {
+    height: 4px;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  @media (max-width: 900px) { #orte-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 600px) { #orte-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Die Runde ♦︎ seit 2024</div>
+  <h1>Doppelkopf <span>Chronik</span></h1>
+  <p class="header-sub">Sebastian · Andy · Frede · Fabian · Chris</p>
+  <div class="gold-rule"></div>
+</header>
+
+<!-- ── Nav ── -->
+<nav class="nav" id="main-nav">
+  <a class="nav-item" onclick="navScrollTo('sec-uebersicht')"><span class="nav-icon">📊</span>Übersicht</a>
+  <a class="nav-item" onclick="navScrollTo('sec-spieler')"><span class="nav-icon">🃏</span>Spieler</a>
+  <a class="nav-item" onclick="navScrollTo('sec-verlauf')"><span class="nav-icon">📈</span>Verlauf</a>
+  <a class="nav-item" onclick="navScrollTo('sec-ranking')"><span class="nav-icon">🏆</span>Ranking</a>
+  <a class="nav-item" onclick="navScrollTo('sec-abende')"><span class="nav-icon">🗓</span>Abende</a>
+  <a class="nav-item" onclick="navScrollTo('sec-events')"><span class="nav-icon">✨</span>Events</a>
+  <a class="nav-item" onclick="navScrollTo('sec-h2h')"><span class="nav-icon">⚡</span>Head-to-Head</a>
+  <a class="nav-item" onclick="navScrollTo('sec-orte')"><span class="nav-icon">🏠</span>Orte</a>
+</nav>
+
+<!-- ── Global Stats ── -->
+<section id="sec-uebersicht">
+  <div class="container">
+    <div class="section-title">Übersicht</div>
+    <div class="section-sub">Alle Spielabende auf einen Blick</div>
+    <div class="global-grid" id="global-grid"></div>
+  </div>
+</section>
+
+<!-- ── Player Cards ── -->
+<section id="sec-spieler">
+  <div class="container">
+    <div class="section-title">Spieler</div>
+    <div class="section-sub">Gesamtbilanz aller Abende</div>
+    <div class="players-grid" id="players-grid"></div>
+  </div>
+</section>
+
+<!-- ── Lifetime Chart ── -->
+<section id="sec-verlauf">
+  <div class="container">
+    <div class="section-title">Lifetime-Verlauf</div>
+    <div class="section-sub">Kumulative Punkteentwicklung über alle Spielabende</div>
+    <div class="chart-wrapper">
+      <canvas id="lineChart" height="320"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ── Ranking ── -->
+<section id="sec-ranking">
+  <div class="container">
+    <div class="section-title">Gesamtranking</div>
+    <div class="section-sub">Alle Abende zusammengerechnet</div>
+    <div class="ranking-scroll"><table class="ranking-table" id="ranking-table"></table></div>
+  </div>
+</section>
+
+<!-- ── Sessions ── -->
+<section id="sec-abende">
+  <div class="container">
+    <div class="section-title">Spielabende</div>
+    <div class="section-sub">Klicke auf einen Abend für Details</div>
+    <div class="sessions-list" id="sessions-list"></div>
+  </div>
+</section>
+
+<!-- ── Special Events ── -->
+<section id="sec-events">
+  <div class="container">
+    <div class="section-title">Besondere Ereignisse</div>
+    <div class="section-sub">Über alle Spielabende</div>
+    <div class="events-stats-grid" id="events-grid"></div>
+  </div>
+</section>
+
+<!-- ── Head-to-Head ── -->
+<section id="sec-h2h">
+  <div class="container">
+    <div class="section-title">⚡ Head-to-Head</div>
+    <div class="section-sub">Wer setzt sich durch, wenn zwei aufeinandertreffen? (Punkte pro gemeinsamem Abend)</div>
+    <div id="h2h-wrap"></div>
+  </div>
+</section>
+
+<!-- ── Orte ── -->
+<section id="sec-orte">
+  <div class="container">
+    <div class="section-title">🏠 Spielorte</div>
+    <div class="section-sub">Gastgeber — Abende — Heimbilanz</div>
+    <div id="orte-grid"></div>
+  </div>
+</section>
+
+
+
+
+<script>
+const DATA = {
+  absences: {
+    "11.07.2025": ["Andy"],
+    "29.08.2025": ["Fabian"],
+    "19.09.2025": ["Chris"],
+    "24.10.2025": ["Chris"],
+    "10.04.2026": ["Fabian"]
+  },
+  sessions: [
+    { date:"15.11.2024", ort:"Fabian", rounds:39, scores:{Sebastian:-25,Andy:-29,Frede:71,Fabian:-16,Chris:-1}, winner:"Frede", hochzeit:5, schwein:0, solo:13, bock:36 },
+    { date:"25.01.2025", ort:"Andy",   rounds:46, scores:{Sebastian:-105,Andy:117,Frede:25,Fabian:-30,Chris:-7}, winner:"Andy", hochzeit:6, schwein:0, solo:12, bock:40 },
+    { date:"14.03.2025", ort:"Chris",  rounds:45, scores:{Sebastian:16,Andy:-112,Frede:44,Fabian:92,Chris:-40}, winner:"Fabian", hochzeit:6, schwein:0, solo:14, bock:39 },
+    { date:"09.05.2025", ort:"Basti",  rounds:46, scores:{Sebastian:100,Andy:25,Frede:-88,Fabian:65,Chris:-102}, winner:"Sebastian", hochzeit:0, schwein:0, solo:17, bock:40 },
+    { date:"08.06.2025", ort:"Fabian", rounds:40, scores:{Sebastian:-27,Andy:50,Frede:26,Fabian:-84,Chris:35}, winner:"Andy", hochzeit:4, schwein:0, solo:14, bock:34 },
+    { date:"11.07.2025", ort:"Frede",  rounds:36, scores:{Sebastian:66,Andy:0,Frede:-84,Fabian:60,Chris:-42}, winner:"Sebastian", hochzeit:1, schwein:0, solo:4, bock:25 },
+    { date:"29.08.2025", ort:"Andy",   rounds:44, scores:{Sebastian:-21,Andy:-67,Frede:167,Fabian:0,Chris:-79}, winner:"Frede", hochzeit:4, schwein:0, solo:9, bock:20 },
+    { date:"19.09.2025", ort:"Basti",  rounds:39, scores:{Sebastian:12,Andy:22,Frede:36,Fabian:-70,Chris:0}, winner:"Frede", hochzeit:2, schwein:0, solo:2, bock:16 },
+    { date:"24.10.2025", ort:"Fabian", rounds:29, scores:{Sebastian:-60,Andy:-32,Frede:36,Fabian:56,Chris:0}, winner:"Fabian", hochzeit:5, schwein:0, solo:8, bock:27 },
+    { date:"21.11.2025", ort:"Chris",  rounds:22, scores:{Sebastian:-112,Andy:67,Frede:-49,Fabian:99,Chris:-5}, winner:"Fabian", hochzeit:1, schwein:0, solo:3, bock:21 },
+    { date:"13.03.2026", ort:"Fabian", rounds:43, scores:{Sebastian:115,Andy:-62,Frede:-26,Fabian:-31,Chris:4}, winner:"Sebastian", hochzeit:5, schwein:4, solo:14, bock:34 },
+    { date:"10.04.2026", ort:"Andy",   rounds:44, scores:{Sebastian:-35,Andy:83,Frede:-25,Fabian:0,Chris:-23}, winner:"Andy", hochzeit:3, schwein:2, solo:8, bock:17 }
+  ],
+  cumulative: {
+    labels:    ["15.11.2024","25.01.2025","14.03.2025","09.05.2025","08.06.2025","11.07.2025","29.08.2025","19.09.2025","24.10.2025","21.11.2025","13.03.2026","10.04.2026"],
+    Sebastian: [-25,-130,-114,-14,-41,25,4,16,-44,-156,-41,-76],
+    Andy:      [-29,88,-24,1,51,51,-16,6,-26,41,-21,62],
+    Frede:     [71,96,140,52,78,-6,161,197,233,184,158,133],
+    Fabian:    [-16,-46,46,111,27,87,87,17,73,172,141,141],
+    Chris:     [-1,-8,-48,-150,-115,-157,-236,-236,-236,-241,-237,-260]
+  },
+  wins:  { Sebastian:3, Andy:3, Frede:3, Fabian:3, Chris:0 },
+  final: { Sebastian:-76, Andy:62, Frede:133, Fabian:141, Chris:-260 }
+};
+
+const PLAYERS = ['Sebastian','Andy','Frede','Fabian','Chris'];
+const COLORS  = { Sebastian:'#e8874a', Andy:'#4a9ee8', Frede:'#4caf80', Fabian:'#c47ee8', Chris:'#e84a4a' };
+const SUITS   = ['♠','♥','♦','♣','♠'];
+
+// ── Global Stats ──
+const totalRounds = DATA.sessions.reduce((a,s)=>a+s.rounds,0);
+const totalHochzeit = DATA.sessions.reduce((a,s)=>a+s.hochzeit,0);
+const totalSolo = DATA.sessions.reduce((a,s)=>a+s.solo,0);
+const totalBock = DATA.sessions.reduce((a,s)=>a+s.bock,0);
+const totalSchwein = DATA.sessions.reduce((a,s)=>a+s.schwein,0);
+const bestSession = DATA.sessions.reduce((best, s) => {
+  const maxVal = Math.max(...PLAYERS.map(p=>s.scores[p]));
+  const maxP = PLAYERS.find(p=>s.scores[p]===maxVal);
+  return maxVal > best.val ? {val:maxVal, player:maxP, date:s.date} : best;
+}, {val:-Infinity});
+
+document.getElementById('global-grid').innerHTML = [
+  {val: DATA.sessions.length, label:'Spielabende'},
+  {val: totalRounds, label:'Gesamt­runden'},
+  {val: totalSolo, label:'Solos gespielt'},
+  {val: totalBock, label:'Bock­runden'},
+  {val: totalHochzeit, label:'Hochzeiten'},
+  {val: totalSchwein, label:'Schweine'},
+].map(s=>`
+  <div class="stat-chip">
+    <div class="stat-chip-val">${s.val}</div>
+    <div class="stat-chip-label">${s.label}</div>
+  </div>
+`).join('');
+
+// ── Player Cards ──
+const gamesPlayed = { Sebastian:425, Andy:390, Frede:425, Fabian:338, Chris:357 };
+
+const sortedPlayers = [...PLAYERS].sort((a,b) => DATA.final[b] - DATA.final[a]);
+
+document.getElementById('players-grid').innerHTML = sortedPlayers.map((p, i) => {
+  const origIdx = PLAYERS.indexOf(p);
+  const final = DATA.final[p];
+  const wins = DATA.wins[p];
+  const totalSessions = DATA.sessions.length;
+  const absCount = Object.values(DATA.absences).filter(arr => arr.includes(p)).length;
+  const attended = totalSessions - absCount;
+  const cls = final > 0 ? 'positive' : final < 0 ? 'negative' : 'neutral';
+  const sign = final > 0 ? '+' : '';
+  const dots = DATA.sessions.map(s => {
+    const absent = (DATA.absences[s.date] || []).includes(p);
+    if (absent) return '';
+    const won = s.winner === p;
+    const color = won ? 'background:#c9a84c;box-shadow:0 0 6px rgba(201,168,76,0.6)' : 'background:#2a3a2f;box-shadow:none';
+    return `<div style="width:10px;height:10px;border-radius:50%;display:inline-block;${color}" title="${won ? 'Gewonnen' : 'Verloren'}"></div>`;
+  }).join('');
+  const isLeader = final === Math.max(...PLAYERS.map(x=>DATA.final[x]));
+  return `
+    <div class="player-card ${isLeader ? 'leader-card' : ''}" style="--player-color:${COLORS[p]}; animation-delay:${i*0.08}s">      <div class="player-card-suit">${SUITS[origIdx]}</div>
+      <div class="player-name" style="display:flex;align-items:center;gap:8px">
+        <span style="color:${COLORS[p]}">${p}</span>
+        ${isLeader ? '<span class="leader-badge">⭐ Führend</span>' : ''}
+      </div>
+      <div class="player-stat">
+        <div class="player-stat-inline">
+          <span class="player-stat-label">Punkte</span>
+          <span class="player-stat-val ${cls}" style="font-size:18px">${sign}${final}</span>
+        </div>
+      </div>
+      <div class="player-stat" style="margin-top:6px">
+        <div class="player-stat-inline">
+          <span class="player-stat-label">Spiele gespielt</span>
+          <span class="player-stat-val neutral" style="font-size:18px">${gamesPlayed[p]}</span>
+        </div>
+      </div>
+      <div class="player-stat" style="margin-top:6px">
+        <div class="player-stat-label">${attended} von ${totalSessions} Abenden</div>
+      </div>
+      <div class="player-stat" style="margin-top:12px">
+        <div class="player-stat-label">Siege ↗</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;align-items:center">${dots}</div>
+      </div>
+    </div>
+  `;
+}).join('');
+
+// ── Line Chart ──
+const ctx = document.getElementById('lineChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: DATA.cumulative.labels,
+    datasets: PLAYERS.map(p => ({
+      label: p,
+      data: DATA.cumulative[p],
+      borderColor: COLORS[p],
+      backgroundColor: COLORS[p] + '18',
+      borderWidth: 2.5,
+      pointRadius: 5,
+      pointHoverRadius: 8,
+      pointBackgroundColor: COLORS[p],
+      pointBorderColor: '#0d0f0e',
+      pointBorderWidth: 2,
+      tension: 0.35,
+      fill: false,
+    }))
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          color: '#ddd8cc',
+          font: { family: "'DM Sans', sans-serif", size: 14 },
+          usePointStyle: true,
+          pointStyle: 'circle',
+          pointStyleWidth: 10,
+          boxHeight: 10,
+          padding: 24,
+        }
+      },
+      tooltip: {
+        backgroundColor: '#141c17',
+        borderColor: '#2a3a2f',
+        borderWidth: 1,
+        titleColor: '#c9a84c',
+        bodyColor: '#ddd8cc',
+        titleFont: { family: "'Outfit', sans-serif", size: 14 },
+        bodyFont: { family: "'DM Sans', sans-serif", size: 14 },
+        padding: 12,
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y > 0 ? '+' : ''}${ctx.parsed.y}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(42,58,47,0.5)', drawBorder: false },
+        ticks: { color: '#8a9e8f', font: { family: "'DM Sans', sans-serif", size: 12 } }
+      },
+      y: {
+        grid: { color: 'rgba(42,58,47,0.5)', drawBorder: false },
+        ticks: {
+          color: '#8a9e8f',
+          font: { family: "'DM Sans', sans-serif", size: 12 },
+          callback: v => (v > 0 ? '+' : '') + v
+        }
+      }
+    }
+  }
+});
+
+// ── Ranking Table ──
+const sorted = [...PLAYERS].sort((a,b) => DATA.final[b] - DATA.final[a]);
+const maxAbs = Math.max(...PLAYERS.map(p=>Math.abs(DATA.final[p])));
+
+// Pre-compute per-player stats
+const playerStats = {};
+PLAYERS.forEach(p => {
+  const absentDates = Object.entries(DATA.absences).filter(([,pl]) => pl.includes(p)).map(([d]) => d);
+  const attendedSessions = DATA.sessions.filter(s => !absentDates.includes(s.date));
+  const scores = attendedSessions.map(s => s.scores[p]);
+  const n = attendedSessions.length;
+  const best  = Math.max(...scores);
+  const worst = Math.min(...scores);
+  const avg   = DATA.final[p] / n;
+  const plusCount  = scores.filter(v => v > 0).length;
+  const minusCount = scores.filter(v => v < 0).length;
+  const absentCount = absentDates.length;
+  playerStats[p] = { best, worst, avg, plusCount, minusCount, absentCount };
+});
+
+document.getElementById('ranking-table').innerHTML = `
+  <thead><tr>
+    <th>#</th>
+    <th>Spieler</th>
+    <th>Siege</th>
+    <th>Gesamt & Verlauf</th>
+    <th title="Ø Punkte pro Abend">Ø / Abend</th>
+    <th title="Bestes Einzelergebnis">Bestes</th>
+    <th title="Schlechtestes Einzelergebnis">Schlechtestes</th>
+    <th title="Abende im Plus vs. Minus">Plus / Minus</th>
+    <th title="Abwesende Abende">Abwesend</th>
+  </tr></thead>
+  <tbody>
+  ${sorted.map((p, i) => {
+    const f    = DATA.final[p];
+    const st   = playerStats[p];
+    const barPct  = Math.round(Math.abs(f) / maxAbs * 50); // max 50% of half-width
+    const barLeft  = f < 0 ? `${50 - barPct}%` : '50%';
+    const barWidth = `${barPct}%`;
+    const barColor = f >= 0 ? COLORS[p] : '#e07070';
+    const sign = v => v > 0 ? '+' : '';
+    const cls  = v => v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral';
+    const avg  = st.avg.toFixed(1);
+
+    const absCount = Object.values(DATA.absences).filter(arr => arr.includes(p)).length;
+    return `<tr class="rank-${i+1}">
+      <td><span class="rank-num" style="color:${COLORS[p]}">${i+1}</span></td>
+      <td><span class="rank-name" style="color:${COLORS[p]}">${p}</span></td>
+      <td style="font-size:17px; letter-spacing:2px; color:var(--gold)">
+        ${Array.from({length:DATA.wins[p]},()=>'★').join('')||'—'}
+      </td>
+      <td>
+        <div class="score-bar-wrap" style="flex-direction:column;gap:4px;align-items:stretch">
+          <div class="centered-bar-track">
+            <div class="centered-bar-zero"></div>
+            <div class="centered-bar-fill" style="left:${barLeft};width:${barWidth};background:${barColor}"></div>
+          </div>
+          <span class="score-val ${cls(f)}" style="text-align:center">${sign(f)}${f}</span>
+        </div>
+      </td>
+      <td class="stat-mini ${cls(parseFloat(avg))}">${sign(parseFloat(avg))}${avg}</td>
+      <td class="stat-mini positive">+${st.best}</td>
+      <td class="stat-mini negative">${st.worst}</td>
+      <td class="stat-mini">
+        <span style="color:var(--green-bright)">${st.plusCount}✓</span>
+        <span style="color:var(--muted); margin:0 3px">/</span>
+        <span style="color:#e07070">${st.minusCount}✗</span>
+      </td>
+      <td class="stat-mini">
+        ${st.absentCount > 0
+          ? `<span style="color:#e8874a">${st.absentCount}×</span>`
+          : `<span style="color:var(--muted)">—</span>`}
+      </td>
+    </tr>`;
+  }).join('')}
+  </tbody>
+`;
+
+// ── Round Data ──
+const ROUNDS = [{"date":"15.11.2024","rounds":[{"r":1,"Sebastian":6,"Frede":-6,"Fabian":-6,"Chris":6},{"r":2,"Andy":6,"Frede":6,"Fabian":6,"Chris":-18,"e":["H","A"]},{"r":3,"Sebastian":10,"Andy":-10,"Frede":-10,"Chris":10,"e":["B"]},{"r":4,"Sebastian":-14,"Andy":14,"Frede":-14,"Fabian":14,"e":["B"]},{"r":5,"Sebastian":18,"Andy":18,"Fabian":-18,"Chris":-18,"e":["B"]},{"r":6,"Sebastian":6,"Frede":-10,"Fabian":14,"Chris":-10,"e":["H","B"]},{"r":7,"Andy":8,"Frede":-8,"Fabian":-8,"Chris":8,"e":["B"]},{"r":8,"Sebastian":-11,"Andy":9,"Frede":-11,"Chris":13,"e":["H"]},{"r":9,"Sebastian":-6,"Andy":6,"Frede":6,"Fabian":-6,"e":["B"]},{"r":10,"Sebastian":-12,"Andy":8,"Fabian":-12,"Chris":16,"e":["H","B"]},{"r":11,"Sebastian":-16,"Frede":-16,"Fabian":48,"Chris":-16,"e":["F","B"]},{"r":12,"Andy":-8,"Frede":-8,"Fabian":8,"Chris":8,"e":["B"]},{"r":13,"Sebastian":4,"Andy":-4,"Frede":4,"Chris":-4,"e":["B"]},{"r":14,"Sebastian":-8,"Andy":8,"Frede":8,"Fabian":-8,"e":["B"]},{"r":15,"Sebastian":-14,"Andy":-14,"Fabian":-14,"Chris":42,"e":["A","B"]},{"r":16,"Sebastian":-6,"Frede":18,"Fabian":-6,"Chris":-6,"e":["F","B"]},{"r":17,"Andy":-10,"Frede":10,"Fabian":10,"Chris":-10,"e":["B"]},{"r":18,"Sebastian":6,"Andy":6,"Frede":-6,"Chris":-6,"e":["B"]},{"r":19,"Sebastian":-10,"Andy":-10,"Frede":-10,"Fabian":30,"e":["F","B"]},{"r":20,"Sebastian":8,"Andy":-8,"Fabian":8,"Chris":-8,"e":["B"]},{"r":21,"Sebastian":-6,"Frede":6,"Fabian":-6,"Chris":6,"e":["B"]},{"r":22,"Andy":16,"Frede":16,"Fabian":-16,"Chris":-16,"e":["B"]},{"r":23,"Sebastian":16,"Andy":-48,"Frede":16,"Chris":16,"e":["F","B"]},{"r":24,"Sebastian":-72,"Andy":24,"Frede":24,"Fabian":24,"e":["F","B"]},{"r":25,"Sebastian":10,"Andy":-10,"Fabian":-10,"Chris":10,"e":["B"]},{"r":26,"Sebastian":6,"Frede":6,"Fabian":-6,"Chris":-6,"e":["B"]},{"r":27,"Andy":12,"Frede":-12,"Fabian":12,"Chris":-12,"e":["B"]},{"r":28,"Sebastian":8,"Andy":8,"Frede":-8,"Chris":-8,"e":["B"]},{"r":29,"Sebastian":54,"Andy":-18,"Frede":-18,"Fabian":-18,"e":["F","B"]},{"r":30,"Sebastian":-6,"Andy":6,"Fabian":-6,"Chris":6,"e":["B"]},{"r":31,"Sebastian":-14,"Frede":14,"Fabian":-14,"Chris":14,"e":["B"]},{"r":32,"Andy":8,"Frede":8,"Fabian":-4,"Chris":-12,"e":["H","B"]},{"r":33,"Sebastian":8,"Andy":8,"Frede":8,"Chris":-24,"e":["F","B"]},{"r":34,"Sebastian":10,"Andy":-30,"Frede":10,"Fabian":10,"e":["F","B"]},{"r":35,"Sebastian":8,"Andy":-8,"Fabian":8,"Chris":-8,"e":["B"]},{"r":36,"Sebastian":-8,"Frede":8,"Fabian":8,"Chris":-8,"e":["B"]},{"r":37,"Andy":-16,"Frede":-16,"Fabian":-16,"Chris":48,"e":["A","B"]},{"r":38,"Sebastian":-14,"Andy":-14,"Frede":42,"Chris":-14,"e":["F","B"]},{"r":39,"Sebastian":14,"Andy":14,"Frede":14,"Fabian":-42,"e":["F","B"]}]},{"date":"25.01.2025","rounds":[{"r":1,"Sebastian":6,"Andy":-6,"Frede":-6,"Fabian":6},{"r":2,"Sebastian":4,"Andy":-4,"Fabian":4,"Chris":-4},{"r":3,"Sebastian":4,"Frede":-4,"Fabian":-4,"Chris":4},{"r":4,"Andy":-10,"Frede":12,"Fabian":-10,"Chris":8,"e":["H"]},{"r":5,"Sebastian":9,"Andy":-9,"Frede":-9,"Chris":9},{"r":6,"Sebastian":-8,"Andy":-8,"Frede":8,"Fabian":8},{"r":7,"Sebastian":2,"Andy":2,"Fabian":-2,"Chris":-2,"e":["B"]},{"r":8,"Sebastian":14,"Frede":-14,"Fabian":-14,"Chris":14,"e":["B"]},{"r":9,"Andy":-14,"Frede":18,"Fabian":-14,"Chris":10,"e":["H","B"]},{"r":10,"Sebastian":18,"Andy":-22,"Frede":-22,"Chris":26,"e":["H","B"]},{"r":11,"Sebastian":-14,"Andy":-14,"Frede":-14,"Fabian":42,"e":["F","B"]},{"r":12,"Sebastian":-10,"Andy":10,"Fabian":10,"Chris":-10,"e":["B"]},{"r":13,"Sebastian":10,"Frede":10,"Fabian":-10,"Chris":-10,"e":["B"]},{"r":14,"Andy":18,"Frede":-54,"Fabian":18,"Chris":18,"e":["A","B"]},{"r":15,"Sebastian":-8,"Andy":8,"Frede":-8,"Chris":8,"e":["B"]},{"r":16,"Sebastian":10,"Andy":10,"Frede":-10,"Fabian":-10,"e":["B"]},{"r":17,"Sebastian":-14,"Andy":42,"Fabian":-14,"Chris":-14,"e":["F","B"]},{"r":18,"Sebastian":-42,"Frede":14,"Fabian":14,"Chris":14,"e":["A","B"]},{"r":19,"Andy":4,"Frede":4,"Fabian":4,"Chris":-12,"e":["H","F","B"]},{"r":20,"Sebastian":14,"Andy":14,"Frede":14,"Chris":-42,"e":["F","B"]},{"r":21,"Sebastian":0,"Andy":0,"Frede":0,"Fabian":0,"e":["B"]},{"r":22,"Sebastian":-30,"Andy":10,"Fabian":10,"Chris":10,"e":["H","F","B"]},{"r":23,"Sebastian":6,"Frede":-6,"Fabian":6,"Chris":-6,"e":["B"]},{"r":24,"Andy":8,"Frede":8,"Fabian":-8,"Chris":-8,"e":["B"]},{"r":25,"Sebastian":-18,"Andy":18,"Frede":18,"Chris":-18,"e":["B"]},{"r":26,"Sebastian":-10,"Andy":10,"Frede":-10,"Fabian":10,"e":["B"]},{"r":27,"Sebastian":12,"Andy":-16,"Fabian":20,"Chris":-16,"e":["H","B"]},{"r":28,"Sebastian":6,"Frede":-6,"Fabian":-6,"Chris":6,"e":["B"]},{"r":29,"Andy":14,"Frede":-14,"Fabian":-14,"Chris":14,"e":["B"]},{"r":30,"Sebastian":-12,"Andy":12,"Frede":-12,"Chris":12,"e":["B"]},{"r":31,"Sebastian":-6,"Andy":6,"Frede":6,"Fabian":-6,"e":["B"]},{"r":32,"Sebastian":-4,"Andy":-4,"Fabian":4,"Chris":4,"e":["B"]},{"r":33,"Sebastian":8,"Frede":-8,"Fabian":-8,"Chris":8,"e":["B"]},{"r":34,"Andy":-10,"Frede":10,"Fabian":-10,"Chris":10,"e":["B"]},{"r":35,"Sebastian":8,"Andy":8,"Frede":-8,"Chris":-8,"e":["B"]},{"r":36,"Sebastian":-16,"Andy":16,"Frede":16,"Fabian":-16,"e":["B"]},{"r":37,"Sebastian":-12,"Andy":12,"Fabian":-12,"Chris":12,"e":["B"]},{"r":38,"Sebastian":6,"Frede":6,"Fabian":-6,"Chris":-6,"e":["B"]},{"r":39,"Andy":-12,"Frede":36,"Fabian":-12,"Chris":-12,"e":["F","B"]},{"r":40,"Sebastian":12,"Andy":-36,"Frede":12,"Chris":12,"e":["F","B"]},{"r":41,"Sebastian":10,"Andy":-10,"Frede":-10,"Fabian":10,"e":["B"]},{"r":42,"Sebastian":-16,"Andy":16,"Fabian":16,"Chris":-16,"e":["B"]},{"r":43,"Sebastian":-6,"Frede":-6,"Fabian":6,"Chris":6,"e":["B"]},{"r":44,"Andy":20,"Frede":20,"Fabian":-60,"Chris":20,"e":["F","B"]},{"r":45,"Sebastian":16,"Andy":16,"Frede":16,"Chris":-48,"e":["F","B"]},{"r":46,"Sebastian":-54,"Andy":18,"Frede":18,"Fabian":18,"e":["F","B"]}]},{"date":"14.03.2025","rounds":[{"r":1,"Sebastian":-3,"Andy":3,"Fabian":-3,"Chris":3},{"r":2,"Sebastian":10,"Frede":-10,"Fabian":-10,"Chris":10,"e":["B"]},{"r":3,"Andy":8,"Frede":8,"Fabian":-8,"Chris":-8,"e":["B"]},{"r":4,"Sebastian":-8,"Andy":8,"Frede":-8,"Chris":8,"e":["B"]},{"r":5,"Sebastian":-2,"Andy":2,"Frede":2,"Fabian":-2,"e":["B"]},{"r":6,"Sebastian":-2,"Andy":-2,"Fabian":2,"Chris":2,"e":["B"]},{"r":7,"Sebastian":14,"Frede":-14,"Fabian":14,"Chris":-14},{"r":8,"Andy":6,"Frede":6,"Fabian":-6,"Chris":-6,"e":["B"]},{"r":9,"Sebastian":-8,"Andy":-8,"Frede":24,"Chris":-8,"e":["F","B"]},{"r":10,"Sebastian":-10,"Andy":10,"Frede":-10,"Fabian":10,"e":["B"]},{"r":11,"Sebastian":-12,"Andy":16,"Frede":8,"Fabian":-12,"e":["H","B"]},{"r":12,"Sebastian":-18,"Andy":14,"Fabian":-18,"Chris":22,"e":["H","B"]},{"r":13,"Sebastian":-8,"Frede":-8,"Fabian":8,"Chris":8,"e":["B"]},{"r":14,"Andy":8,"Frede":8,"Fabian":-8,"Chris":-8,"e":["B"]},{"r":15,"Sebastian":-24,"Andy":8,"Frede":8,"Chris":8,"e":["H","A","B"]},{"r":16,"Sebastian":18,"Andy":-14,"Frede":10,"Fabian":-14,"e":["H","B"]},{"r":17,"Sebastian":-12,"Andy":-12,"Fabian":36,"Chris":-12,"e":["F","B"]},{"r":18,"Sebastian":3,"Frede":-3,"Fabian":3,"Chris":-3},{"r":19,"Andy":5,"Frede":-5,"Fabian":5,"Chris":-5},{"r":20,"Sebastian":11,"Andy":11,"Frede":11,"Chris":-33,"e":["F"]},{"r":21,"Sebastian":13,"Andy":-39,"Frede":13,"Fabian":13,"e":["H","F"]},{"r":22,"Sebastian":14,"Andy":-42,"Fabian":14,"Chris":14,"e":["F","B"]},{"r":23,"Sebastian":-48,"Frede":16,"Fabian":16,"Chris":16,"e":["F","B"]},{"r":24,"Andy":10,"Frede":-10,"Fabian":-10,"Chris":10,"e":["B"]},{"r":25,"Sebastian":10,"Andy":-10,"Frede":-10,"Chris":10,"e":["B"]},{"r":26,"Sebastian":10,"Andy":-10,"Frede":-10,"Fabian":10,"e":["B"]},{"r":27,"Sebastian":12,"Andy":12,"Fabian":-12,"Chris":-12,"e":["B"]},{"r":28,"Sebastian":10,"Frede":10,"Fabian":-30,"Chris":10,"e":["A","B"]},{"r":29,"Andy":-12,"Frede":-4,"Fabian":8,"Chris":8,"e":["H","B"]},{"r":30,"Sebastian":12,"Andy":-12,"Frede":-12,"Chris":12,"e":["B"]},{"r":31,"Sebastian":12,"Andy":-12,"Frede":12,"Fabian":-12,"e":["B"]},{"r":32,"Sebastian":16,"Andy":16,"Fabian":-16,"Chris":-16,"e":["B"]},{"r":33,"Sebastian":16,"Frede":-16,"Fabian":16,"Chris":-16,"e":["B"]},{"r":34,"Andy":-10,"Frede":-10,"Fabian":30,"Chris":-10,"e":["F","B"]},{"r":35,"Sebastian":18,"Andy":-18,"Frede":-18,"Chris":18,"e":["B"]},{"r":36,"Sebastian":8,"Andy":-8,"Frede":-8,"Fabian":8,"e":["B"]},{"r":37,"Sebastian":-8,"Andy":8,"Fabian":-8,"Chris":8,"e":["B"]},{"r":38,"Sebastian":-4,"Frede":4,"Fabian":-4,"Chris":4,"e":["B"]},{"r":39,"Andy":-6,"Frede":6,"Fabian":6,"Chris":-6,"e":["B"]},{"r":40,"Sebastian":12,"Andy":12,"Frede":-36,"Chris":12,"e":["A","B"]},{"r":41,"Sebastian":14,"Andy":-42,"Frede":14,"Fabian":14,"e":["F","B"]},{"r":42,"Sebastian":-54,"Andy":18,"Fabian":18,"Chris":18,"e":["F","B"]},{"r":43,"Sebastian":18,"Frede":18,"Fabian":18,"Chris":-54,"e":["F","B"]},{"r":44,"Andy":-16,"Frede":16,"Fabian":16,"Chris":-16,"e":["B"]},{"r":45,"Sebastian":-14,"Andy":-14,"Frede":42,"Chris":-14,"e":["F","B"]}]},{"date":"09.05.2025","rounds":[{"r":1,"Andy":11,"Frede":-11,"Fabian":11,"Chris":-11},{"r":2,"Sebastian":-14,"Frede":14,"Fabian":-14,"Chris":14,"e":["B"]},{"r":3,"Sebastian":-14,"Andy":-14,"Fabian":42,"Chris":-14,"e":["F","B"]},{"r":4,"Sebastian":-16,"Andy":-16,"Frede":-16,"Chris":48,"e":["F","B"]},{"r":5,"Sebastian":-10,"Andy":-10,"Frede":30,"Fabian":-10,"e":["F","B"]},{"r":6,"Andy":10,"Frede":-10,"Fabian":10,"Chris":-10,"e":["B"]},{"r":7,"Sebastian":-5,"Frede":-5,"Fabian":15,"Chris":-5,"e":["F"]},{"r":8,"Sebastian":4,"Andy":-4,"Fabian":-4,"Chris":4},{"r":9,"Sebastian":3,"Andy":-3,"Frede":-3,"Chris":3},{"r":10,"Sebastian":-4,"Andy":4,"Frede":4,"Fabian":-4},{"r":11,"Andy":5,"Frede":5,"Fabian":-15,"Chris":5,"e":["A"]},{"r":12,"Sebastian":-6,"Frede":6,"Fabian":-6,"Chris":6,"e":["B"]},{"r":13,"Sebastian":16,"Andy":16,"Fabian":16,"Chris":-48,"e":["A","B"]},{"r":14,"Sebastian":16,"Andy":-16,"Frede":-16,"Chris":16,"e":["B"]},{"r":15,"Sebastian":-8,"Andy":-8,"Frede":8,"Fabian":8,"e":["B"]},{"r":16,"Andy":6,"Frede":6,"Fabian":-6,"Chris":-6,"e":["B"]},{"r":17,"Sebastian":-6,"Frede":-6,"Fabian":6,"Chris":6,"e":["B"]},{"r":18,"Sebastian":10,"Andy":10,"Fabian":-10,"Chris":-10,"e":["B"]},{"r":19,"Sebastian":-8,"Andy":8,"Frede":8,"Chris":-8,"e":["B"]},{"r":20,"Sebastian":-10,"Andy":-10,"Frede":10,"Fabian":10,"e":["B"]},{"r":21,"Andy":54,"Frede":-18,"Fabian":-18,"Chris":-18,"e":["F","B"]},{"r":22,"Sebastian":-14,"Frede":14,"Fabian":14,"Chris":-14,"e":["B"]},{"r":23,"Sebastian":14,"Andy":14,"Fabian":-42,"Chris":14,"e":["F","B"]},{"r":24,"Sebastian":20,"Andy":20,"Frede":-20,"Chris":-20,"e":["B"]},{"r":25,"Sebastian":48,"Andy":-16,"Frede":-16,"Fabian":-16,"e":["F","B"]},{"r":26,"Andy":-6,"Frede":6,"Fabian":6,"Chris":-6,"e":["B"]},{"r":27,"Sebastian":14,"Frede":-14,"Fabian":14,"Chris":-14,"e":["B"]},{"r":28,"Sebastian":10,"Andy":10,"Fabian":-10,"Chris":-10,"e":["B"]},{"r":29,"Sebastian":-8,"Andy":8,"Frede":8,"Chris":-8,"e":["B"]},{"r":30,"Sebastian":6,"Andy":-6,"Frede":6,"Fabian":-6,"e":["B"]},{"r":31,"Andy":-12,"Frede":-12,"Fabian":12,"Chris":12,"e":["B"]},{"r":32,"Sebastian":8,"Frede":8,"Fabian":-24,"Chris":8,"e":["F","B"]},{"r":33,"Sebastian":12,"Andy":12,"Fabian":-12,"Chris":-12,"e":["B"]},{"r":34,"Sebastian":-16,"Andy":16,"Frede":16,"Chris":-16,"e":["B"]},{"r":35,"Sebastian":12,"Andy":-12,"Frede":12,"Fabian":-12,"e":["B"]},{"r":36,"Andy":12,"Frede":-36,"Fabian":12,"Chris":12,"e":["F","B"]},{"r":37,"Sebastian":6,"Frede":-6,"Fabian":-6,"Chris":6,"e":["B"]},{"r":38,"Sebastian":-14,"Andy":14,"Fabian":14,"Chris":-14,"e":["B"]},{"r":39,"Sebastian":12,"Andy":-12,"Frede":-12,"Chris":12,"e":["B"]},{"r":40,"Sebastian":16,"Andy":-16,"Frede":-16,"Fabian":16,"e":["B"]},{"r":41,"Andy":12,"Frede":-36,"Fabian":12,"Chris":12,"e":["F","B"]},{"r":42,"Sebastian":-8,"Frede":-8,"Fabian":24,"Chris":-8,"e":["F","B"]},{"r":43,"Sebastian":-12,"Andy":-12,"Fabian":36,"Chris":-12,"e":["F","B"]},{"r":44,"Sebastian":10,"Andy":10,"Frede":10,"Chris":-30,"e":["F","B"]},{"r":45,"Sebastian":36,"Andy":-12,"Frede":-12,"Fabian":-12,"e":["F","B"]},{"r":46,"Andy":-42,"Frede":14,"Fabian":14,"Chris":14,"e":["F","B"]}]},{"date":"08.06.2025","rounds":[{"r":1,"Sebastian":2,"Andy":2,"Frede":-2,"Fabian":-2},{"r":2,"Sebastian":18,"Andy":-6,"Fabian":-6,"Chris":-6,"e":["A"]},{"r":3,"Sebastian":4,"Andy":4,"Fabian":-4,"Chris":-4},{"r":4,"Andy":-3,"Frede":-3,"Fabian":3,"Chris":3},{"r":5,"Sebastian":-10,"Frede":8,"Fabian":-6,"Chris":8,"e":["H"]},{"r":6,"Sebastian":-6,"Andy":-6,"Frede":6,"Fabian":6,"e":["B"]},{"r":7,"Sebastian":0,"Andy":0,"Fabian":0,"Chris":0,"e":["B"]},{"r":8,"Sebastian":10,"Andy":-10,"Frede":10,"Chris":-10,"e":["B"]},{"r":9,"Andy":-14,"Frede":14,"Fabian":-14,"Chris":14,"e":["B"]},{"r":10,"Sebastian":-16,"Frede":-16,"Fabian":20,"Chris":12,"e":["H","B"]},{"r":11,"Sebastian":-15,"Andy":17,"Frede":13,"Fabian":-15,"e":["H"]},{"r":12,"Sebastian":12,"Andy":-12,"Fabian":-12,"Chris":12,"e":["B"]},{"r":13,"Sebastian":-18,"Andy":-18,"Frede":54,"Chris":-18,"e":["F","B"]},{"r":14,"Andy":-6,"Frede":-6,"Fabian":6,"Chris":6,"e":["B"]},{"r":15,"Sebastian":-8,"Frede":24,"Fabian":-8,"Chris":-8,"e":["F","B"]},{"r":16,"Sebastian":-6,"Andy":-6,"Frede":6,"Fabian":6,"e":["B"]},{"r":17,"Sebastian":-6,"Andy":-6,"Fabian":6,"Chris":6,"e":["B"]},{"r":18,"Sebastian":-16,"Andy":48,"Frede":-16,"Chris":-16,"e":["F","B"]},{"r":19,"Andy":-2,"Frede":-2,"Fabian":2,"Chris":2,"e":["B"]},{"r":20,"Sebastian":16,"Frede":16,"Fabian":16,"Chris":-48,"e":["F","B"]},{"r":21,"Sebastian":16,"Andy":16,"Frede":16,"Fabian":-48,"e":["F","B"]},{"r":22,"Sebastian":8,"Andy":8,"Fabian":-8,"Chris":-8,"e":["B"]},{"r":23,"Sebastian":6,"Andy":-6,"Frede":-6,"Chris":6,"e":["B"]},{"r":24,"Andy":14,"Frede":14,"Fabian":-14,"Chris":-14,"e":["B"]},{"r":25,"Sebastian":8,"Frede":-8,"Fabian":8,"Chris":-8,"e":["B"]},{"r":26,"Sebastian":10,"Andy":-10,"Frede":-10,"Fabian":10,"e":["B"]},{"r":27,"Sebastian":-60,"Andy":20,"Fabian":20,"Chris":20,"e":["H","A","B"]},{"r":28,"Sebastian":8,"Andy":8,"Frede":-8,"Chris":-8,"e":["B"]},{"r":29,"Andy":30,"Frede":-10,"Fabian":-10,"Chris":-10,"e":["F","B"]},{"r":30,"Sebastian":-14,"Frede":-14,"Fabian":14,"Chris":14,"e":["B"]},{"r":31,"Sebastian":-6,"Andy":-6,"Frede":6,"Fabian":6,"e":["B"]},{"r":32,"Sebastian":2,"Andy":-2,"Fabian":2,"Chris":-2,"e":["B"]},{"r":33,"Sebastian":-12,"Andy":36,"Frede":-12,"Chris":-12,"e":["F","B"]},{"r":34,"Andy":-12,"Frede":12,"Fabian":-12,"Chris":12,"e":["B"]},{"r":35,"Sebastian":-20,"Frede":-20,"Fabian":-20,"Chris":60,"e":["F","B"]},{"r":36,"Sebastian":14,"Andy":-42,"Frede":14,"Fabian":14,"e":["F","B"]},{"r":37,"Sebastian":-14,"Andy":14,"Fabian":-14,"Chris":14,"e":["B"]},{"r":38,"Sebastian":48,"Andy":-16,"Frede":-16,"Chris":-16,"e":["F","B"]},{"r":39,"Andy":16,"Frede":16,"Fabian":-48,"Chris":16,"e":["F","B"]},{"r":40,"Sebastian":18,"Frede":-54,"Fabian":18,"Chris":18,"e":["F","B"]}]},{"date":"11.07.2025","rounds":[{"r":1,"Sebastian":-2,"Frede":2,"Fabian":2,"Chris":-2},{"r":2,"Sebastian":-4,"Frede":-4,"Fabian":4,"Chris":4},{"r":3,"Sebastian":-2,"Frede":-6,"Fabian":4,"Chris":4,"e":["H"]},{"r":4,"Sebastian":-12,"Frede":-12,"Fabian":12,"Chris":12,"e":["B"]},{"r":5,"Sebastian":4,"Frede":4,"Fabian":-4,"Chris":-4,"e":["B"]},{"r":6,"Sebastian":18,"Frede":-18,"Fabian":18,"Chris":-18,"e":["B"]},{"r":7,"Sebastian":-16,"Frede":16,"Fabian":-16,"Chris":16,"e":["B"]},{"r":8,"Sebastian":-4,"Frede":-4,"Fabian":4,"Chris":4},{"r":9,"Sebastian":-5,"Frede":5,"Fabian":-5,"Chris":5},{"r":10,"Sebastian":5,"Frede":-5,"Fabian":5,"Chris":-5},{"r":11,"Sebastian":-5,"Frede":5,"Fabian":5,"Chris":-5},{"r":12,"Sebastian":5,"Frede":5,"Fabian":-5,"Chris":-5},{"r":13,"Sebastian":-4,"Frede":-4,"Fabian":4,"Chris":4},{"r":14,"Sebastian":-8,"Frede":-8,"Fabian":8,"Chris":8},{"r":15,"Sebastian":-6,"Frede":6,"Fabian":6,"Chris":-6},{"r":16,"Sebastian":36,"Frede":-12,"Fabian":-12,"Chris":-12,"e":["F","B"]},{"r":17,"Sebastian":8,"Frede":8,"Fabian":-8,"Chris":-8,"e":["B"]},{"r":18,"Sebastian":-4,"Frede":4,"Fabian":-4,"Chris":4,"e":["B"]},{"r":19,"Sebastian":-2,"Frede":-2,"Fabian":2,"Chris":2,"e":["B"]},{"r":20,"Sebastian":-8,"Frede":8,"Fabian":-8,"Chris":8,"e":["B"]},{"r":21,"Sebastian":4,"Frede":-4,"Fabian":-4,"Chris":4,"e":["B"]},{"r":22,"Sebastian":-6,"Frede":6,"Fabian":6,"Chris":-6,"e":["B"]},{"r":23,"Sebastian":12,"Frede":-12,"Fabian":12,"Chris":-12,"e":["B"]},{"r":24,"Sebastian":12,"Frede":-12,"Fabian":12,"Chris":-12,"e":["B"]},{"r":25,"Sebastian":-10,"Frede":10,"Fabian":10,"Chris":-10,"e":["B"]},{"r":26,"Sebastian":-4,"Frede":4,"Fabian":4,"Chris":-4,"e":["B"]},{"r":27,"Sebastian":-8,"Frede":8,"Fabian":8,"Chris":-8,"e":["B"]},{"r":28,"Sebastian":10,"Frede":-10,"Fabian":10,"Chris":-10,"e":["B"]},{"r":29,"Sebastian":30,"Frede":-10,"Fabian":-10,"Chris":-10,"e":["F","B"]},{"r":30,"Sebastian":-12,"Frede":12,"Fabian":12,"Chris":-12,"e":["B"]},{"r":31,"Sebastian":-8,"Frede":-8,"Fabian":8,"Chris":8,"e":["B"]},{"r":32,"Sebastian":8,"Frede":-8,"Fabian":8,"Chris":-8,"e":["B"]},{"r":33,"Sebastian":12,"Frede":-12,"Fabian":-12,"Chris":12,"e":["B"]},{"r":34,"Sebastian":6,"Frede":-6,"Fabian":6,"Chris":-6,"e":["B"]},{"r":35,"Sebastian":12,"Frede":12,"Fabian":-36,"Chris":12,"e":["F","B"]},{"r":36,"Sebastian":14,"Frede":-42,"Fabian":14,"Chris":14,"e":["F","B"]}]},{"date":"29.08.2025","rounds":[{"r":1,"Sebastian":-5,"Andy":5,"Frede":-5,"Chris":5},{"r":2,"Sebastian":7,"Andy":-7,"Frede":-7,"Chris":7},{"r":3,"Sebastian":6,"Andy":6,"Frede":-18,"Chris":6,"e":["H","F"]},{"r":4,"Sebastian":8,"Andy":-8,"Frede":-8,"Chris":8,"e":["B"]},{"r":5,"Sebastian":-12,"Andy":-12,"Frede":16,"Chris":8,"e":["H","B"]},{"r":6,"Sebastian":10,"Andy":10,"Frede":-10,"Chris":-10,"e":["B"]},{"r":7,"Sebastian":14,"Andy":-18,"Frede":22,"Chris":-18,"e":["H","B"]},{"r":8,"Sebastian":9,"Andy":-7,"Frede":5,"Chris":-7,"e":["H"]},{"r":9,"Sebastian":-7,"Andy":21,"Frede":-7,"Chris":-7,"e":["F"]},{"r":10,"Sebastian":-6,"Andy":-6,"Frede":18,"Chris":-6,"e":["F"]},{"r":11,"Sebastian":-7,"Andy":-7,"Frede":7,"Chris":7},{"r":12,"Sebastian":-8,"Andy":8,"Frede":8,"Chris":-8},{"r":13,"Sebastian":5,"Andy":-5,"Frede":-5,"Chris":5},{"r":14,"Sebastian":-3,"Andy":3,"Frede":-3,"Chris":3},{"r":15,"Sebastian":-3,"Andy":3,"Frede":-3,"Chris":3},{"r":16,"Sebastian":5,"Andy":5,"Frede":-5,"Chris":-5},{"r":17,"Sebastian":-7,"Andy":7,"Frede":7,"Chris":-7},{"r":18,"Sebastian":-9,"Andy":27,"Frede":-9,"Chris":-9,"e":["F"]},{"r":19,"Sebastian":3,"Andy":-3,"Frede":3,"Chris":-3},{"r":20,"Sebastian":4,"Andy":4,"Frede":-4,"Chris":-4,"e":["B"]},{"r":21,"Sebastian":20,"Andy":-20,"Frede":20,"Chris":-20,"e":["B"]},{"r":22,"Sebastian":-8,"Andy":8,"Frede":-8,"Chris":8,"e":["B"]},{"r":23,"Sebastian":14,"Andy":14,"Frede":14,"Chris":-42,"e":["F","B"]},{"r":24,"Sebastian":-6,"Andy":-6,"Frede":6,"Chris":6,"e":["B"]},{"r":25,"Sebastian":-4,"Andy":4,"Frede":4,"Chris":-4,"e":["B"]},{"r":26,"Sebastian":-10,"Andy":-10,"Frede":10,"Chris":10,"e":["B"]},{"r":27,"Sebastian":8,"Andy":-8,"Frede":-8,"Chris":8,"e":["B"]},{"r":28,"Sebastian":6,"Andy":-6,"Frede":6,"Chris":-6,"e":["B"]},{"r":29,"Sebastian":-16,"Andy":-16,"Frede":16,"Chris":16,"e":["B"]},{"r":30,"Sebastian":-20,"Andy":-20,"Frede":60,"Chris":-20,"e":["F","B"]},{"r":31,"Sebastian":-6,"Andy":6,"Frede":6,"Chris":-6,"e":["B"]},{"r":32,"Sebastian":5,"Andy":5,"Frede":-5,"Chris":-5},{"r":33,"Sebastian":5,"Andy":5,"Frede":-5,"Chris":-5},{"r":34,"Sebastian":-8,"Andy":-8,"Frede":24,"Chris":-8,"e":["F"]},{"r":35,"Sebastian":-8,"Andy":-8,"Frede":24,"Chris":-8,"e":["F"]},{"r":36,"Sebastian":4,"Andy":4,"Frede":-4,"Chris":-4},{"r":37,"Sebastian":-9,"Andy":9,"Frede":-9,"Chris":9},{"r":38,"Sebastian":7,"Andy":-7,"Frede":7,"Chris":-7},{"r":39,"Sebastian":18,"Andy":-54,"Frede":18,"Chris":18,"e":["F"]},{"r":40,"Sebastian":-10,"Andy":10,"Frede":10,"Chris":-10,"e":["B"]},{"r":41,"Sebastian":-4,"Andy":-4,"Frede":4,"Chris":4,"e":["B"]},{"r":42,"Sebastian":-14,"Andy":14,"Frede":-14,"Chris":14,"e":["B"]},{"r":43,"Sebastian":8,"Andy":-8,"Frede":-8,"Chris":8,"e":["B"]},{"r":44,"Sebastian":3,"Andy":3,"Frede":-3,"Chris":-3}]},{"date":"19.09.2025","rounds":[{"r":1,"Sebastian":-4,"Andy":4,"Frede":4,"Fabian":-4},{"r":2,"Sebastian":8,"Andy":-8,"Frede":8,"Fabian":-8,"e":["B"]},{"r":3,"Sebastian":-8,"Andy":8,"Frede":8,"Fabian":-8,"e":["B"]},{"r":4,"Sebastian":42,"Andy":-14,"Frede":-14,"Fabian":-14,"e":["F","B"]},{"r":5,"Sebastian":-10,"Andy":10,"Frede":10,"Fabian":-10,"e":["B"]},{"r":6,"Sebastian":-8,"Andy":8,"Frede":8,"Fabian":-8},{"r":7,"Sebastian":-3,"Andy":3,"Frede":3,"Fabian":-3},{"r":8,"Sebastian":9,"Andy":9,"Frede":-9,"Fabian":-9},{"r":9,"Sebastian":6,"Andy":-6,"Frede":6,"Fabian":-6},{"r":10,"Sebastian":-3,"Andy":3,"Frede":3,"Fabian":-3},{"r":11,"Sebastian":6,"Andy":6,"Frede":-6,"Fabian":-6},{"r":12,"Sebastian":-4,"Andy":4,"Frede":-4,"Fabian":4},{"r":13,"Sebastian":-5,"Andy":5,"Frede":5,"Fabian":-5},{"r":14,"Sebastian":-5,"Andy":5,"Frede":-5,"Fabian":5},{"r":15,"Sebastian":3,"Andy":3,"Frede":-3,"Fabian":-3},{"r":16,"Sebastian":4,"Andy":-6,"Frede":-6,"Fabian":8,"e":["H"]},{"r":17,"Sebastian":-4,"Andy":-4,"Frede":4,"Fabian":4},{"r":18,"Sebastian":-8,"Andy":-8,"Frede":8,"Fabian":8},{"r":19,"Sebastian":2,"Andy":-2,"Frede":-2,"Fabian":2},{"r":20,"Sebastian":-3,"Andy":3,"Frede":-3,"Fabian":3},{"r":21,"Sebastian":2,"Andy":-2,"Frede":2,"Fabian":-2},{"r":22,"Sebastian":-14,"Andy":-14,"Frede":14,"Fabian":14,"e":["B"]},{"r":23,"Sebastian":14,"Andy":-14,"Frede":14,"Fabian":-14,"e":["B"]},{"r":24,"Sebastian":-6,"Andy":6,"Frede":6,"Fabian":-6,"e":["B"]},{"r":25,"Sebastian":16,"Andy":-16,"Frede":-16,"Fabian":16,"e":["B"]},{"r":26,"Sebastian":-6,"Andy":18,"Frede":-6,"Fabian":-6,"e":["F"]},{"r":27,"Sebastian":-9,"Andy":-9,"Frede":9,"Fabian":9},{"r":28,"Sebastian":-2,"Andy":-2,"Frede":2,"Fabian":2},{"r":29,"Sebastian":6,"Andy":6,"Frede":-6,"Fabian":-6},{"r":30,"Sebastian":7,"Andy":-7,"Frede":-7,"Fabian":7},{"r":31,"Sebastian":7,"Andy":-5,"Frede":7,"Fabian":-9,"e":["H"]},{"r":32,"Sebastian":-16,"Andy":16,"Frede":-16,"Fabian":16,"e":["B"]},{"r":33,"Sebastian":8,"Andy":8,"Frede":-8,"Fabian":-8,"e":["B"]},{"r":34,"Sebastian":-12,"Andy":12,"Frede":-12,"Fabian":12,"e":["B"]},{"r":35,"Sebastian":-6,"Andy":6,"Frede":6,"Fabian":-6,"e":["B"]},{"r":36,"Sebastian":8,"Andy":8,"Frede":-8,"Fabian":-8,"e":["B"]},{"r":37,"Sebastian":-6,"Andy":-6,"Frede":6,"Fabian":6,"e":["B"]},{"r":38,"Sebastian":-14,"Andy":14,"Frede":14,"Fabian":-14,"e":["B"]},{"r":39,"Sebastian":20,"Andy":-20,"Frede":20,"Fabian":-20,"e":["B"]}]},{"date":"24.10.2025","rounds":[{"r":1,"Sebastian":6,"Andy":6,"Frede":-18,"Fabian":6,"e":["F"]},{"r":2,"Sebastian":-8,"Andy":-8,"Frede":8,"Fabian":8,"e":["B"]},{"r":3,"Sebastian":-18,"Andy":14,"Frede":-18,"Fabian":22,"e":["H","B"]},{"r":4,"Sebastian":8,"Andy":8,"Frede":8,"Fabian":-24,"e":["H","F","B"]},{"r":5,"Sebastian":-6,"Andy":-6,"Frede":6,"Fabian":6,"e":["B"]},{"r":6,"Sebastian":0,"Andy":-4,"Frede":0,"Fabian":4,"e":["H","B"]},{"r":7,"Sebastian":-10,"Andy":-10,"Frede":-10,"Fabian":30,"e":["F","B"]},{"r":8,"Sebastian":-42,"Andy":14,"Frede":14,"Fabian":14,"e":["F","B"]},{"r":9,"Sebastian":2,"Andy":-6,"Frede":-6,"Fabian":10,"e":["H","B"]},{"r":10,"Sebastian":-14,"Andy":-14,"Frede":42,"Fabian":-14,"e":["F","B"]},{"r":11,"Sebastian":-10,"Andy":-10,"Frede":-10,"Fabian":30,"e":["F","B"]},{"r":12,"Sebastian":14,"Andy":-10,"Frede":-10,"Fabian":6,"e":["H","B"]},{"r":13,"Sebastian":-14,"Andy":14,"Frede":14,"Fabian":-14,"e":["B"]},{"r":14,"Sebastian":18,"Andy":-6,"Frede":-6,"Fabian":-6,"e":["F","B"]},{"r":15,"Sebastian":10,"Andy":10,"Frede":-10,"Fabian":-10,"e":["B"]},{"r":16,"Sebastian":-12,"Andy":12,"Frede":12,"Fabian":-12,"e":["B"]},{"r":17,"Sebastian":-8,"Andy":8,"Frede":8,"Fabian":-8,"e":["B"]},{"r":18,"Sebastian":22,"Andy":-66,"Frede":22,"Fabian":22,"e":["F"]},{"r":19,"Sebastian":-12,"Andy":12,"Frede":12,"Fabian":-12,"e":["B"]},{"r":20,"Sebastian":-4,"Andy":4,"Frede":4,"Fabian":-4,"e":["B"]},{"r":21,"Sebastian":10,"Andy":10,"Frede":-10,"Fabian":-10,"e":["B"]},{"r":22,"Sebastian":10,"Andy":10,"Frede":-10,"Fabian":-10,"e":["B"]},{"r":23,"Sebastian":-10,"Andy":10,"Frede":-10,"Fabian":10,"e":["B"]},{"r":24,"Sebastian":-4,"Andy":-4,"Frede":4,"Fabian":4,"e":["B"]},{"r":25,"Sebastian":-10,"Andy":-10,"Frede":10,"Fabian":10,"e":["B"]},{"r":26,"Sebastian":6,"Andy":-6,"Frede":6,"Fabian":-6,"e":["B"]},{"r":27,"Sebastian":18,"Andy":-18,"Frede":-18,"Fabian":18,"e":["B"]},{"r":28,"Sebastian":-8,"Andy":8,"Frede":8,"Fabian":-8,"e":["B"]},{"r":29,"Sebastian":6,"Andy":6,"Frede":-6,"Fabian":-6,"e":["B"]}]},{"date":"21.11.2025","rounds":[{"r":1,"Andy":7,"Frede":-9,"Fabian":7,"Chris":-5,"e":["H"]},{"r":2,"Sebastian":-6,"Andy":6,"Fabian":-6,"Chris":6,"e":["B"]},{"r":3,"Sebastian":-16,"Andy":-16,"Frede":48,"Chris":-16,"e":["F","B"]},{"r":4,"Sebastian":-14,"Frede":-14,"Fabian":14,"Chris":14,"e":["B"]},{"r":5,"Sebastian":-12,"Andy":-12,"Frede":12,"Fabian":12,"e":["B"]},{"r":6,"Andy":16,"Frede":16,"Fabian":16,"Chris":-48,"e":["A","B"]},{"r":7,"Sebastian":-24,"Andy":8,"Fabian":8,"Chris":8,"e":["F","B"]},{"r":8,"Sebastian":8,"Andy":8,"Frede":-8,"Chris":-8,"e":["B"]},{"r":9,"Sebastian":6,"Frede":-6,"Fabian":6,"Chris":-6,"e":["B"]},{"r":10,"Sebastian":-18,"Andy":18,"Frede":-18,"Fabian":18,"e":["B"]},{"r":11,"Andy":10,"Frede":-10,"Fabian":-10,"Chris":10,"e":["B"]},{"r":12,"Sebastian":-12,"Andy":12,"Fabian":12,"Chris":-12,"e":["B"]},{"r":13,"Sebastian":-14,"Andy":14,"Frede":-14,"Chris":14,"e":["B"]},{"r":14,"Sebastian":12,"Frede":-12,"Fabian":12,"Chris":-12,"e":["B"]},{"r":15,"Sebastian":6,"Andy":6,"Frede":-6,"Fabian":-6,"e":["B"]},{"r":16,"Sebastian":0,"Andy":0,"Fabian":0,"Chris":0,"e":["B"]},{"r":17,"Sebastian":-14,"Andy":-14,"Frede":14,"Chris":14,"e":["B"]},{"r":18,"Sebastian":-8,"Frede":-8,"Fabian":8,"Chris":8,"e":["B"]},{"r":19,"Sebastian":12,"Andy":-12,"Frede":-12,"Fabian":12,"e":["B"]},{"r":20,"Andy":10,"Frede":-10,"Fabian":-10,"Chris":10,"e":["B"]},{"r":21,"Sebastian":-6,"Andy":-6,"Fabian":6,"Chris":6,"e":["B"]},{"r":22,"Sebastian":-12,"Andy":12,"Frede":-12,"Chris":12,"e":["B"]}]},{"date":"13.03.2026","rounds":[{"r":1,"Sebastian":1,"Andy":-1,"Frede":1,"Fabian":0,"Chris":-1,"e":["H"]},{"r":2,"Sebastian":5,"Andy":5,"Frede":-5,"Fabian":-5,"Chris":0},{"r":3,"Sebastian":0,"Andy":8,"Frede":-8,"Fabian":-8,"Chris":8,"e":["S"]},{"r":4,"Sebastian":5,"Andy":0,"Frede":-5,"Fabian":5,"Chris":-5},{"r":5,"Sebastian":1,"Andy":1,"Frede":0,"Fabian":-1,"Chris":-1},{"r":6,"Sebastian":-5,"Andy":-5,"Frede":5,"Fabian":0,"Chris":5},{"r":7,"Sebastian":6,"Andy":-6,"Frede":-6,"Fabian":6,"Chris":0,"e":["S"]},{"r":8,"Sebastian":0,"Andy":18,"Frede":-6,"Fabian":-6,"Chris":-6,"e":["B"]},{"r":9,"Sebastian":4,"Andy":0,"Frede":-12,"Fabian":4,"Chris":4,"e":["B"]},{"r":10,"Sebastian":12,"Andy":-12,"Frede":0,"Fabian":12,"Chris":-12,"e":["B"]},{"r":11,"Sebastian":22,"Andy":22,"Frede":-66,"Fabian":0,"Chris":22,"e":["D","B"]},{"r":12,"Sebastian":12,"Andy":-12,"Frede":-12,"Fabian":12,"Chris":0,"e":["S","B"]},{"r":13,"Sebastian":0,"Andy":-8,"Frede":8,"Fabian":-8,"Chris":8,"e":["S","B"]},{"r":14,"Sebastian":-6,"Andy":0,"Frede":6,"Fabian":-6,"Chris":6,"e":["B"]},{"r":15,"Sebastian":-8,"Andy":8,"Frede":0,"Fabian":-8,"Chris":8,"e":["B"]},{"r":16,"Sebastian":18,"Andy":-14,"Frede":-14,"Fabian":0,"Chris":10,"e":["H","B"]},{"r":17,"Sebastian":-42,"Andy":14,"Frede":14,"Fabian":14,"Chris":0,"e":["B","B"]},{"r":18,"Sebastian":0,"Andy":-16,"Frede":48,"Fabian":-16,"Chris":-16,"e":["D","B"]},{"r":19,"Sebastian":12,"Andy":0,"Frede":-36,"Fabian":12,"Chris":12,"e":["B","B"]},{"r":20,"Sebastian":-16,"Andy":-16,"Frede":0,"Fabian":48,"Chris":-16,"e":["B","B"]},{"r":21,"Sebastian":16,"Andy":16,"Frede":16,"Fabian":0,"Chris":-48,"e":["D","B"]},{"r":22,"Sebastian":14,"Andy":14,"Frede":14,"Fabian":-42,"Chris":0,"e":["B","B"]},{"r":23,"Sebastian":0,"Andy":8,"Frede":-8,"Fabian":8,"Chris":-8,"e":["B"]},{"r":24,"Sebastian":6,"Andy":0,"Frede":-6,"Fabian":-6,"Chris":6,"e":["B"]},{"r":25,"Sebastian":30,"Andy":-10,"Frede":0,"Fabian":-10,"Chris":-10,"e":["B","B"]},{"r":26,"Sebastian":2,"Andy":2,"Frede":-2,"Fabian":0,"Chris":-2,"e":["B"]},{"r":27,"Sebastian":-10,"Andy":10,"Frede":10,"Fabian":-10,"Chris":0,"e":["B"]},{"r":28,"Sebastian":0,"Andy":-10,"Frede":-10,"Fabian":10,"Chris":10,"e":["B"]},{"r":29,"Sebastian":-14,"Andy":0,"Frede":14,"Fabian":-14,"Chris":14,"e":["B"]},{"r":30,"Sebastian":14,"Andy":14,"Frede":0,"Fabian":14,"Chris":-42,"e":["H","B"]},{"r":31,"Sebastian":-4,"Andy":4,"Frede":4,"Fabian":0,"Chris":-4,"e":["B"]},{"r":32,"Sebastian":18,"Andy":18,"Frede":-18,"Fabian":-18,"Chris":0,"e":["B"]},{"r":33,"Sebastian":0,"Andy":8,"Frede":16,"Fabian":-12,"Chris":-12,"e":["H","B"]},{"r":34,"Sebastian":10,"Andy":0,"Frede":-6,"Fabian":-14,"Chris":10,"e":["H","B"]},{"r":35,"Sebastian":12,"Andy":-12,"Frede":0,"Fabian":12,"Chris":-12,"e":["B"]},{"r":36,"Sebastian":-18,"Andy":-18,"Frede":-18,"Fabian":0,"Chris":54,"e":["B","B"]},{"r":37,"Sebastian":-16,"Andy":-16,"Frede":48,"Fabian":-16,"Chris":0,"e":["T","B"]},{"r":38,"Sebastian":0,"Andy":12,"Frede":12,"Fabian":-12,"Chris":-12,"e":["B"]},{"r":39,"Sebastian":-14,"Andy":0,"Frede":-14,"Fabian":14,"Chris":14,"e":["B"]},{"r":40,"Sebastian":6,"Andy":-6,"Frede":0,"Fabian":6,"Chris":-6,"e":["B"]},{"r":41,"Sebastian":-6,"Andy":-6,"Frede":6,"Fabian":0,"Chris":6,"e":["B"]},{"r":42,"Sebastian":48,"Andy":-16,"Frede":-16,"Fabian":-16,"Chris":0,"e":["D","B"]},{"r":43,"Sebastian":0,"Andy":-60,"Frede":20,"Fabian":20,"Chris":20,"e":["D","B"]}]},{"date":"10.04.2026","rounds":[{"r":1,"Sebastian":-6,"Andy":18,"Frede":-6,"Chris":-6,"e":["B"]},{"r":2,"Sebastian":5,"Andy":5,"Frede":-5,"Chris":-5},{"r":3,"Sebastian":-6,"Andy":6,"Frede":6,"Chris":-6},{"r":4,"Sebastian":-4,"Andy":4,"Frede":-4,"Chris":4},{"r":5,"Sebastian":8,"Andy":8,"Frede":-8,"Chris":-8},{"r":6,"Sebastian":-12,"Andy":12,"Frede":12,"Chris":-12},{"r":7,"Sebastian":-5,"Andy":-5,"Frede":15,"Chris":-5,"e":["B"]},{"r":8,"Sebastian":8,"Andy":-8,"Frede":8,"Chris":-8,"e":["S","A"]},{"r":9,"Sebastian":-5,"Andy":5,"Frede":-5,"Chris":5},{"r":10,"Sebastian":-4,"Andy":4,"Frede":-4,"Chris":4},{"r":11,"Sebastian":-2,"Andy":2,"Frede":2,"Chris":-2},{"r":12,"Sebastian":-6,"Andy":6,"Frede":6,"Chris":-6,"e":["S","A"]},{"r":13,"Sebastian":7,"Andy":-9,"Frede":-9,"Chris":11,"e":["H"]},{"r":14,"Sebastian":6,"Andy":-6,"Frede":6,"Chris":-6,"e":["S"]},{"r":15,"Sebastian":-12,"Andy":4,"Frede":4,"Chris":4,"e":["B"]},{"r":16,"Sebastian":4,"Andy":-4,"Frede":4,"Chris":-4,"e":["X"]},{"r":17,"Sebastian":0,"Andy":0,"Frede":0,"Chris":0,"e":["X"]},{"r":18,"Sebastian":24,"Andy":-20,"Frede":-20,"Chris":16,"e":["H","X"]},{"r":19,"Sebastian":-14,"Andy":14,"Frede":-14,"Chris":14,"e":["S","X"]},{"r":20,"Sebastian":-12,"Andy":-12,"Frede":-12,"Chris":36,"e":["D","X"]},{"r":21,"Sebastian":-8,"Andy":8,"Frede":8,"Chris":-8,"e":["X"]},{"r":22,"Sebastian":8,"Andy":-8,"Frede":-8,"Chris":8,"e":["X"]},{"r":23,"Sebastian":6,"Andy":-6,"Frede":6,"Chris":-6,"e":["X"]},{"r":24,"Sebastian":2,"Andy":-2,"Frede":2,"Chris":-2,"e":["H"]},{"r":25,"Sebastian":-6,"Andy":-6,"Frede":6,"Chris":6},{"r":26,"Sebastian":6,"Andy":6,"Frede":-6,"Chris":-6},{"r":27,"Sebastian":-4,"Andy":4,"Frede":4,"Chris":-4},{"r":28,"Sebastian":-8,"Andy":-8,"Frede":8,"Chris":8,"e":["X"]},{"r":29,"Sebastian":-14,"Andy":42,"Frede":-14,"Chris":-14,"e":["T","X"]},{"r":30,"Sebastian":8,"Andy":8,"Frede":-8,"Chris":-8,"e":["A","X"]},{"r":31,"Sebastian":-48,"Andy":16,"Frede":16,"Chris":16,"e":["H","X"]},{"r":32,"Sebastian":20,"Andy":-16,"Frede":12,"Chris":-16,"e":["H","S","X"]},{"r":33,"Sebastian":-4,"Andy":4,"Frede":-4,"Chris":4,"e":["X"]},{"r":34,"Sebastian":-8,"Andy":-8,"Frede":8,"Chris":8,"e":["X"]},{"r":35,"Sebastian":-2,"Andy":2,"Frede":-2,"Chris":2},{"r":36,"Sebastian":-5,"Andy":5,"Frede":5,"Chris":-5},{"r":37,"Sebastian":21,"Andy":-7,"Frede":-7,"Chris":-7,"e":["B"]},{"r":38,"Sebastian":2,"Andy":2,"Frede":-2,"Chris":-2},{"r":39,"Sebastian":-6,"Andy":6,"Frede":-6,"Chris":6},{"r":40,"Sebastian":5,"Andy":-5,"Frede":-5,"Chris":5,"e":["S"]},{"r":41,"Sebastian":-6,"Andy":6,"Frede":-6,"Chris":6},{"r":42,"Sebastian":6,"Andy":6,"Frede":-18,"Chris":6,"e":["B","A"]},{"r":43,"Sebastian":8,"Andy":-8,"Frede":-8,"Chris":8,"e":["X"]},{"r":44,"Sebastian":18,"Andy":18,"Frede":18,"Chris":-54,"e":["B","X"]}]}];
+
+const EVENT_LABELS = { H:'💍', B:'🔔', F:'Solo', A:'Solo', D:'Solo', T:'Solo', S:'🐷' };
+
+function buildRoundsTable(rounds, absentPlayers) {
+  const activePlayers = PLAYERS.filter(p => !absentPlayers.includes(p));
+  const colW = Math.floor(520 / activePlayers.length);
+
+  const header = `<tr>
+    <th style="width:44px">#</th>
+    ${activePlayers.map(p => `<th style="color:${COLORS[p]};width:${colW}px">${p}</th>`).join('')}
+    <th style="width:80px">Events</th>
+  </tr>`;
+
+  const rows = rounds.map(r => {
+    const cells = activePlayers.map(p => {
+      const v = r[p];
+      if (v === undefined) return `<td class="rt-cell rt-abs">—</td>`;
+      const cls = v > 0 ? 'rt-pos' : v < 0 ? 'rt-neg' : 'rt-zero';
+      return `<td class="rt-cell ${cls}">${v > 0 ? '+' : ''}${v}</td>`;
+    }).join('');
+    const evts = (r.e || []).map(e => {
+      const lbl = EVENT_LABELS[e] || e;
+      const isSolo = ['F','A','D','T'].includes(e);
+      return `<span class="rt-evt ${isSolo ? 'rt-solo' : 'rt-bock-dot'}">${lbl}</span>`;
+    }).join('');
+    return `<tr class="rt-row"><td class="rt-num">${r.r}</td>${cells}<td class="rt-evts">${evts}</td></tr>`;
+  }).join('');
+
+  return `<div class="rounds-scroll"><table class="rounds-tbl"><thead>${header}</thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function toggleRounds(idx, e) {
+  e.stopPropagation();
+  const wrap = document.getElementById('rounds-' + idx);
+  const btn  = wrap.previousElementSibling;
+  const open = wrap.style.display === 'none';
+  wrap.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '🃏 Runden ausblenden' : '🃏 Alle Runden anzeigen';
+}
+
+// ── Sessions List ──
+document.getElementById('sessions-list').innerHTML = DATA.sessions.map((s, idx) => {
+  const absentPlayers = DATA.absences[s.date] || [];
+  const scores = PLAYERS.map(p => {
+    const absent = absentPlayers.includes(p);
+    if (absent) return `<div class="score-cell absent-cell">
+      <div class="score-cell-name">${p}</div>
+      <div class="score-cell-val" style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif">nicht dabei</div>
+    </div>`;
+    const v = s.scores[p];
+    const cls = v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral';
+    const isWinner = s.winner === p;
+    return `<div class="score-cell" style="${isWinner ? 'border-color:'+COLORS[p]+';background:'+COLORS[p]+'12' : ''}">
+      <div class="score-cell-name" style="${isWinner ? 'color:'+COLORS[p] : ''}">${isWinner ? '👑 ' : ''}${p}</div>
+      <div class="score-cell-val ${cls}">${v > 0 ? '+' : ''}${v}</div>
+    </div>`;
+  }).join('');
+
+  const events = [];
+  if (s.hochzeit > 0) events.push(`<span class="event-pill hochzeit">💍 ${s.hochzeit}× Hochzeit</span>`);
+  if (s.solo > 0)     events.push(`<span class="event-pill solo">🃏 ${s.solo}× Solo</span>`);
+  if (s.bock > 0)     events.push(`<span class="event-pill bock">🔔 ${s.bock} Bockrunden</span>`);
+  if (s.schwein > 0)  events.push(`<span class="event-pill schwein">🐷 ${s.schwein}× Schwein</span>`);
+
+  const roundData = ROUNDS.find(r => r.date === s.date);
+  const roundsHtml = roundData ? buildRoundsTable(roundData.rounds, absentPlayers) : '';
+
+  return `
+    <div class="session-card" id="sess-${idx}" style="animation-delay:${idx*0.05}s">
+      <div class="session-header" onclick="toggleSession(${idx})">
+        <div class="session-date">${s.date}</div>
+        <div class="session-meta">
+          <span class="session-host">Bei <strong>${s.ort}</strong></span>
+          <span class="session-rounds-badge">${s.rounds} Runden</span>
+          ${absentPlayers.length > 0 ? `<span class="absent-badge" onclick="showEasterEgg(this, '${absentPlayers.join(', ')}', event)">⚠ ohne ${absentPlayers.join(', ')}</span>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div class="session-winner-tag" style="color:${COLORS[s.winner]}">
+            👑 <span>${s.winner}</span>
+          </div>
+          <span class="chevron">▾</span>
+        </div>
+      </div>
+      <div class="session-body">
+        <div class="session-scores-grid">${scores}</div>
+        <div class="events-row">${events.join('')}</div>
+        <button class="rounds-toggle" onclick="toggleRounds(${idx}, event)">🃏 Alle Runden anzeigen</button>
+        <div class="rounds-table-wrap" id="rounds-${idx}" style="display:none">${roundsHtml}</div>
+      </div>
+    </div>
+  `;
+}).join('');
+
+// ── Events Summary ──
+
+// Per-round win/loss streaks (berechnet aus Einzelrunden)
+const streaks = {
+  Sebastian: { maxWin: 9,  maxLoss: 9  },
+  Andy:      { maxWin: 8,  maxLoss: 6  },
+  Frede:     { maxWin: 6,  maxLoss: 6  },
+  Fabian:    { maxWin: 7,  maxLoss: 10 },
+  Chris:     { maxWin: 8,  maxLoss: 9  }
+};
+
+const bestWinStreak  = PLAYERS.reduce((best, p) => streaks[p].maxWin  > streaks[best].maxWin  ? p : best, PLAYERS[0]);
+const bestLossStreak = PLAYERS.reduce((best, p) => streaks[p].maxLoss > streaks[best].maxLoss ? p : best, PLAYERS[0]);
+
+// Per-player solo counts
+const solosByPlayer = { Sebastian:24, Andy:24, Frede:28, Fabian:22, Chris:18 };
+const solosLostByPlayer = { Sebastian:11, Andy:13, Frede:10, Fabian:10, Chris:13 };
+const mostSoloPlayer = Object.entries(solosByPlayer).reduce((a,b) => b[1] > a[1] ? b : a)[0];
+const mostSolosLostMax = Math.max(...Object.values(solosLostByPlayer));
+const mostSolosLostPlayers = Object.entries(solosLostByPlayer).filter(([,v]) => v === mostSolosLostMax).map(([p]) => p);
+
+document.getElementById('events-grid').innerHTML = [
+  { icon:'🃏', num: DATA.sessions.reduce((a,s)=>a+s.solo,0),     name:'Solos gesamt',  sub: null },
+  { icon:'💍', num: DATA.sessions.reduce((a,s)=>a+s.hochzeit,0), name:'Hochzeiten',    sub: null },
+  { icon:'🔔', num: DATA.sessions.reduce((a,s)=>a+s.bock,0),     name:'Bockrunden',    sub: null },
+  { icon:'🐷', num: DATA.sessions.reduce((a,s)=>a+s.schwein,0),  name:'Schweine',      sub: null },
+  { icon:'🎭', num: solosByPlayer[mostSoloPlayer],  name:'Meiste Solos gespielt',    sub: mostSoloPlayer, subColor: COLORS[mostSoloPlayer], type: 'solo' },
+  { icon:'😬', num: mostSolosLostMax,               name:'Meiste Solos verloren',    sub: mostSolosLostPlayers.join(' & '), subColor: mostSolosLostPlayers.length > 1 ? '#e8874a' : COLORS[mostSolosLostPlayers[0]], type: 'loss' },
+  { icon:'🔥', num: streaks[bestWinStreak].maxWin,  name:'Längste Siegesserie',      sub: bestWinStreak,  subColor: COLORS[bestWinStreak],  type:'win',  unit:'Runden' },
+  { icon:'💀', num: streaks[bestLossStreak].maxLoss,name:'Längste Niederlagenserie', sub: bestLossStreak, subColor: COLORS[bestLossStreak], type:'loss', unit:'Runden' },
+].map(e=>`
+  <div class="event-stat-card">
+    <div class="event-stat-icon">${e.icon}</div>
+    <div class="event-stat-num" style="${e.type==='win' ? 'color:var(--green-bright)' : e.type==='loss' ? 'color:#e07070' : ''}">${e.num}</div>
+    <div class="event-stat-name">${e.name}</div>
+    ${e.sub ? `<div class="event-stat-player" style="color:${e.subColor}">${e.sub}</div>` : ''}
+  </div>
+`).join('');
+
+// ── Head-to-Head ──
+const ABSENCES_MAP = {
+  '11.07.2025': ['Andy'],
+  '29.08.2025': ['Fabian'],
+  '19.09.2025': ['Chris'],
+  '24.10.2025': ['Chris'],
+};
+
+const h2h = {};
+PLAYERS.forEach(a => {
+  h2h[a] = {};
+  PLAYERS.forEach(b => {
+    if (a === b) return;
+    const shared = DATA.sessions.filter(s => {
+      const absent = ABSENCES_MAP[s.date] || [];
+      return !absent.includes(a) && !absent.includes(b);
+    });
+    const wins  = shared.filter(s => s.scores[a] > s.scores[b]).length;
+    const total = shared.length;
+    h2h[a][b] = { wins, total, losses: total - wins };
+  });
+});
+
+const h2hWrap = document.getElementById('h2h-wrap');
+h2hWrap.className = 'h2h-matrix';
+
+let tableHtml = `<table class="h2h-table"><thead><tr>
+  <th></th>
+  ${PLAYERS.map(p => `<th class="h2h-col-header" style="color:${COLORS[p]}">${p}</th>`).join('')}
+</tr></thead><tbody>`;
+
+PLAYERS.forEach(rowP => {
+  tableHtml += `<tr><td class="h2h-row-header" style="color:${COLORS[rowP]}">${rowP}</td>`;
+  PLAYERS.forEach(colP => {
+    if (rowP === colP) {
+      tableHtml += `<td class="h2h-cell"><div class="h2h-inner h2h-self"><div style="font-size:18px;color:var(--border)">—</div></div></td>`;
+      return;
+    }
+    const { wins, total, losses } = h2h[rowP][colP];
+    const ratio = total > 0 ? wins / total : 0.5;
+
+    // Background: red (0) → dark neutral (0.5) → player color (1.0)
+    const intensity = Math.abs(ratio - 0.5) * 2; // 0 at 50/50, 1 at 0% or 100%
+    const alpha = 0.1 + intensity * 0.35;
+    let bg, borderColor;
+    if (ratio >= 0.5) {
+      const c = COLORS[rowP];
+      bg = `${c}${Math.round(alpha * 255).toString(16).padStart(2,'0')}`;
+      borderColor = `${c}${Math.round((alpha + 0.15) * 255).toString(16).padStart(2,'0')}`;
+    } else {
+      bg = `rgba(180,40,40,${alpha.toFixed(2)})`;
+      borderColor = `rgba(180,40,40,${(alpha + 0.15).toFixed(2)})`;
+    }
+    const textColor = '#ddd8cc';
+    tableHtml += `<td class="h2h-cell">
+      <div class="h2h-inner" style="background:${bg};border:1px solid ${borderColor}">
+        <div class="h2h-score" style="color:${textColor}">${wins}<span style="opacity:0.4;font-weight:400"> /${total}</span></div>
+        <div class="h2h-record">${wins}S · ${losses}N</div>
+      </div></td>`;
+  });
+  tableHtml += `</tr>`;
+});
+
+tableHtml += `</tbody></table>
+<div style="display:flex;gap:20px;margin-top:12px;font-size:12px;color:var(--muted);flex-wrap:wrap">
+  <span>Grün = dominant (≥70% Siege) &nbsp;·&nbsp; Rot = hinten (≤30%) &nbsp;·&nbsp; Grau = ausgeglichen &nbsp;·&nbsp; Zeile schlägt Spalte</span>
+</div>`;
+
+h2hWrap.innerHTML = tableHtml;
+
+// ── Orte ──
+// ── Orte ──
+const HOST_PLAYER = { Fabian:'Fabian', Andy:'Andy', Chris:'Chris', Basti:'Sebastian', Frede:'Frede' };
+const HOST_LOC    = { Fabian:'Phönixsee, DO', Andy:'Altenberge b. MS', Chris:'Herdecke', Basti:'Dortmunder Süden', Frede:'Phönixsee, DO' };
+
+const orteMap = {};
+DATA.sessions.forEach(s => {
+  if (!orteMap[s.ort]) orteMap[s.ort] = [];
+  orteMap[s.ort].push(s);
+});
+const orteSorted = Object.entries(orteMap).sort((a,b) => {
+  const scoreA = a[1].map(s => s.scores[HOST_PLAYER[a[0]] || a[0]] ?? 0).reduce((x,y) => x+y, 0);
+  const scoreB = b[1].map(s => s.scores[HOST_PLAYER[b[0]] || b[0]] ?? 0).reduce((x,y) => x+y, 0);
+  return scoreB - scoreA;
+});
+const maxCount = orteSorted[0][1].length;
+
+document.getElementById('orte-grid').innerHTML = orteSorted.map(([host, sessions]) => {
+  const p     = HOST_PLAYER[host] || host;
+  const color = COLORS[p] || 'var(--gold)';
+  const loc   = HOST_LOC[host] || '';
+  const count = sessions.length;
+  const scores = sessions.map(s => s.scores[p] ?? 0);
+  const total  = scores.reduce((a,b) => a+b, 0);
+  const wins   = sessions.filter(s => s.winner === p).length;
+  const sign   = v => v > 0 ? '+' : '';
+  const valCls = v => v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral';
+  const barPct = Math.round((count / maxCount) * 100);
+
+  return `
+    <div class="ort-tile" style="--tile-color:${color}">
+      <div class="ort-tile-count">${count}</div>
+      <div class="ort-tile-name">${p}</div>
+      <div class="ort-tile-loc">📍 ${loc}</div>
+      <div class="ort-tile-row">
+        <span class="ort-tile-label">Abende</span>
+        <span class="ort-tile-val" style="color:var(--gold-light)">${count}×</span>
+      </div>
+      <div class="ort-tile-row">
+        <span class="ort-tile-label">Heimbilanz</span>
+        <span class="ort-tile-val ${valCls(total)}">${sign(total)}${total}</span>
+      </div>
+      <div class="ort-tile-row">
+        <span class="ort-tile-label">Heimsiege</span>
+        <span class="ort-tile-val" style="color:${wins > 0 ? 'var(--gold)' : 'var(--muted)'}">${wins} / ${count}</span>
+      </div>
+      <div class="ort-bar-track">
+        <div class="ort-bar-fill" style="width:${barPct}%;background:${color}"></div>
+      </div>
+    </div>`;
+}).join('');
+
+// ── Nav scroll + active highlight ──
+function navScrollTo(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const navH = document.getElementById('main-nav').offsetHeight;
+  const top = el.getBoundingClientRect().top + window.scrollY - navH - 8;
+  window.scrollTo({ top, behavior: 'smooth' });}
+
+const sections = ['sec-uebersicht','sec-spieler','sec-verlauf','sec-ranking','sec-abende','sec-events','sec-h2h','sec-orte'];
+const navItems = document.querySelectorAll('.nav-item');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const idx = sections.indexOf(entry.target.id);
+      navItems.forEach((item, i) => item.classList.toggle('active', i === idx));
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+
+sections.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) observer.observe(el);
+});
+
+function showEasterEgg(el, name, e) {
+  e.stopPropagation();
+  const msgs = [
+    { main: '😂 Haha!',                    sub: name + ' war nicht dabei!' },
+    { main: '🍺 Prost ohne ' + name + '!', sub: 'Hat nix verpasst... oder doch?' },
+    { main: '👻 ' + name + ' = Geist',     sub: 'Nicht erschienen!' },
+    { main: '🃏 Freistuhl!',               sub: name + ' hat geschwänzt!' },
+    { main: '😅 Feige!',                   sub: name + ' hat sich gedrückt!' },
+  ];
+  const msg = msgs[Math.floor(Math.random() * msgs.length)];
+
+  const rect = el.getBoundingClientRect();
+  const popup = document.createElement('div');
+  popup.className = 'easter-egg-popup';
+  popup.innerHTML = `
+    <div class="egg-main">${msg.main}</div>
+    <div style="font-size:11px;color:#8a9e8f;letter-spacing:1px;margin-top:2px">${msg.sub}</div>
+  `;
+  popup.style.cssText = `
+    position: fixed;
+    left: ${rect.left + rect.width / 2}px;
+    top: ${rect.top - 10}px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 9999;
+    text-align: center;
+    animation: eggPop 2.2s ease forwards;
+  `;
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 2300);
+}
+
+// ── Toggle Sessions ──
+function toggleSession(idx) {
+  document.getElementById('sess-'+idx).classList.toggle('open');
+}
+</script>
+
+<!-- ── Podium ── -->
+<section style="border-bottom:none; padding-bottom:0">
+  <div class="container">
+    <div class="section-title">🍺 Die Abrechnung</div>
+    <div class="section-sub">Wer zahlt die Runde — wer trinkt umsonst?</div>
+    <div id="podium-wrap"></div>
+  </div>
+</section>
+
+<footer>♠︎ ♥︎ ♦︎ ♣︎ &nbsp;—&nbsp; Möge das Blatt immer günstig liegen &nbsp;—&nbsp; ♣︎ ♦︎ ♥︎ ♠︎</footer>
+
+<style>
+  #podium-wrap { margin-top: 48px; padding-bottom: 60px; }
+
+  .podium-stage {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .podium-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .podium-avatar {
+    margin-bottom: 8px;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+    animation: bobble 3s ease-in-out infinite;
+    line-height: 1;
+  }
+
+  @keyframes bobble {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-7px); }
+  }
+
+  .podium-name {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 3px;
+  }
+
+  .podium-score {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .podium-label {
+    font-size: 11px;
+    text-align: center;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    max-width: 130px;
+    line-height: 1.4;
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+
+  .podium-block {
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .podium-block::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 60%);
+  }
+
+  .podium-rank-num {
+    font-size: 32px;
+    opacity: 0.3;
+  }
+
+  .podium-ground {
+    height: 5px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    border-radius: 3px;
+    margin-bottom: 40px;
+  }
+
+  .podium-tagline {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    text-align: center;
+  }
+
+  @media (max-width: 700px) {
+    .podium-tagline { grid-template-columns: 1fr 1fr; }
+  }
+
+  .tagline-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-top-width: 2px;
+    border-radius: 6px;
+    padding: 14px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .tagline-card strong {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+</style>
+
+<script>
+(function() {
+  const ranked = [...PLAYERS].sort((a, b) => DATA.final[b] - DATA.final[a]);
+
+  const taglines = [
+    { title: 'König der Karten 👑',  desc: 'Hält die Kasse klein und die Karten groß. Trinkt umsonst! 🍺' },
+    { title: 'Vize-Meister 🥈',      desc: 'Fast König — aber fast zählt nur beim Handgranatenwerfen.' },
+    { title: 'Solider Mittelbau 🃏', desc: 'Weder Held noch Opfer. Statistisch unauffällig.' },
+    { title: 'Beitragszahler 😅',    desc: 'Finanziert zuverlässig die Gewinne der anderen.' },
+    { title: 'Kassenwart 💸',        desc: 'Danke fürs Sponsoring. Die Runde Bier geht auf dich!' },
+  ];
+
+  const avatarSizes  = [72, 54, 44, 36, 30];
+  const blockWidths  = [130, 130, 130, 130, 130];
+  const blockHeights = [200, 155, 115, 80, 50];
+  // Display order: 1st left → 5th right
+  const displayOrder = [0, 1, 2, 3, 4];
+
+  const stage = document.createElement('div');
+  stage.className = 'podium-stage';
+
+  displayOrder.forEach(rankIdx => {
+    const p = ranked[rankIdx];
+    const color = COLORS[p];
+    const sign = DATA.final[p] > 0 ? '+' : '';
+    const scoreColor = DATA.final[p] >= 0 ? 'var(--green-bright)' : '#e07070';
+    const isFirst = rankIdx === 0;
+    const rankEmojis = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+    const avatarEmojis = ['🏆','🥂','🃏','😬','🍺'];
+
+    const slot = document.createElement('div');
+    slot.className = 'podium-slot';
+    slot.style.animationDelay = rankIdx * 0.1 + 's';
+    slot.innerHTML = `
+      <div class="podium-avatar" style="font-size:${avatarSizes[rankIdx]}px; animation-delay:${rankIdx*0.15}s">${isFirst ? '🏆' : avatarEmojis[rankIdx]}</div>
+      <div class="podium-name" style="color:${color}">${p}</div>
+      <div class="podium-score" style="color:${scoreColor}">${sign}${DATA.final[p]}</div>
+      <div class="podium-label">${taglines[rankIdx].title}</div>
+      <div class="podium-block" style="width:${blockWidths[rankIdx]}px; height:${blockHeights[rankIdx]}px; background:${color}20; border:1px solid ${color}40; border-bottom:none;">
+        <div class="podium-rank-num" style="color:${color}">${rankIdx + 1}</div>
+      </div>
+    `;
+    stage.appendChild(slot);
+  });
+
+  const ground = document.createElement('div');
+  ground.className = 'podium-ground';
+
+  const wrap = document.getElementById('podium-wrap');
+  wrap.appendChild(stage);
+  wrap.appendChild(ground);
+})();
+</script>
+</body>
+</html>
