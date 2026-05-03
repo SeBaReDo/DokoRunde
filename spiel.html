@@ -181,14 +181,17 @@ function makeCandle(x, y, z) {
   return g;
 }
 
-// Place candles along the walls
-makeCandle(-9.5, 2.0, -6);
-makeCandle(-9.5, 2.0,  4);
-makeCandle( 9.5, 2.0, -6);
-makeCandle( 9.5, 2.0,  4);
-makeCandle(-4,   2.0, -10.5);
-makeCandle( 4,   2.0, -10.5);
-makeCandle( 0,   2.0,  10.5);
+// Candles — both rooms
+makeCandle(-9.5, 2.0, -9);
+makeCandle( 9.5, 2.0, -9);
+makeCandle(-9.5, 2.0, -3);
+makeCandle( 9.5, 2.0, -3);
+makeCandle(-9.5, 2.0,  5);
+makeCandle( 9.5, 2.0,  5);
+makeCandle(-9.5, 2.0, 10);
+makeCandle( 9.5, 2.0, 10);
+makeCandle( 0,   2.0,-11.5);
+makeCandle( 0,   2.0, 11.5);
 
 // ── Helpers ───────────────────────────────────────────────────
 function mesh(geo, mat, x=0, y=0, z=0, ry=0) {
@@ -202,73 +205,107 @@ function mesh(geo, mat, x=0, y=0, z=0, ry=0) {
 }
 
 // ── Room ─────────────────────────────────────────────────────
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x8b5e3c, roughness: 0.85, metalness: 0.0 }); // warm wood
-const wallMat  = new THREE.MeshStandardMaterial({ color: 0xb0b0b8, roughness: 0.9  }); // light gray
-const ceilMat  = new THREE.MeshStandardMaterial({ color: 0xd0d0d8 });                  // near-white ceiling
+// Layout: Room1 (entry) z[-12,0], Room2 (back) z[0,12], both x[-10,10]
+// Middle wall at z=0 with door gap x[-2,2], height 2.6
 
-mesh(new THREE.PlaneGeometry(22,22), floorMat, 0,0,0,-Math.PI/2);
-mesh(new THREE.PlaneGeometry(22,22), ceilMat,  0,4,0, Math.PI/2);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x8b5e3c, roughness: 0.88 });
+const wallMat  = new THREE.MeshStandardMaterial({ color: 0xa8a8b0, roughness: 0.9  });
+const ceilMat  = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+const skirtMat = new THREE.MeshStandardMaterial({ color: 0x6a4a28 });
+const frameMat = new THREE.MeshStandardMaterial({ color: 0x7a5a38, roughness: 0.8  });
 
-// Store walls so camera raycaster can check them
+// Floor & ceiling spanning both rooms
+mesh(new THREE.PlaneGeometry(20,24), floorMat, 0, 0,  0, -Math.PI/2);
+mesh(new THREE.PlaneGeometry(20,24), ceilMat,  0, 4,  0,  Math.PI/2);
+
 const wallMeshes = [];
-function addWall(geo, x, y, z) {
+function addWall(geo, x, y, z, ry=0) {
   const m = new THREE.Mesh(geo, wallMat);
-  m.position.set(x, y, z);
-  m.castShadow = true; m.receiveShadow = true;
+  m.position.set(x,y,z); m.rotation.y=ry;
+  m.castShadow=true; m.receiveShadow=true;
   scene.add(m); wallMeshes.push(m); return m;
 }
-addWall(new THREE.BoxGeometry(22,4,0.3),  0, 2,-11);
-addWall(new THREE.BoxGeometry(22,4,0.3),  0, 2, 11);
-addWall(new THREE.BoxGeometry(0.3,4,22),-11, 2,  0);
-addWall(new THREE.BoxGeometry(0.3,4,22), 11, 2,  0);
+
+// Outer walls
+addWall(new THREE.BoxGeometry(20, 4, 0.3),  0, 2,-12);   // back room1
+addWall(new THREE.BoxGeometry(20, 4, 0.3),  0, 2, 12);   // back room2
+addWall(new THREE.BoxGeometry(0.3, 4, 24),-10, 2,  0);   // left
+addWall(new THREE.BoxGeometry(0.3, 4, 24), 10, 2,  0);   // right
+
+// Middle wall — two segments with door gap (x[-2,2])
+addWall(new THREE.BoxGeometry(8, 4, 0.3), -6, 2, 0);     // left segment  (x-10 to -2)
+addWall(new THREE.BoxGeometry(8, 4, 0.3),  6, 2, 0);     // right segment (x2 to 10)
+// Lintel above door
+mesh(new THREE.BoxGeometry(4, 1.4, 0.3), wallMat, 0, 3.3, 0);
+
+// Door frame
+mesh(new THREE.BoxGeometry(0.22, 2.65, 0.35), frameMat, -2,  1.32, 0);
+mesh(new THREE.BoxGeometry(0.22, 2.65, 0.35), frameMat,  2,  1.32, 0);
+mesh(new THREE.BoxGeometry(4.44, 0.22, 0.35), frameMat,  0,  2.71, 0);
+
+// Open door (hinged at x=-2, swung 90° into room2)
+const doorMat = new THREE.MeshStandardMaterial({ color: 0x6a4828, roughness: 0.75 });
+const doorG = new THREE.Group();
+doorG.position.set(-2, 0, 0);
+const doorPanel = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.55, 3.9), doorMat);
+doorPanel.position.set(0.04, 1.27, 1.95);
+doorPanel.castShadow = true; doorPanel.receiveShadow = true;
+doorG.add(doorPanel);
+// door trim
+for (const [dy,dz] of [[0.6,0.6],[0.6,-0.6],[1.9,0.6],[1.9,-0.6]]) {
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.8,1.6), new THREE.MeshStandardMaterial({color:0x7a5838,roughness:0.8}));
+  trim.position.set(0.05, dy, dz); doorG.add(trim);
+}
+// door knob
+const knob = new THREE.Mesh(new THREE.SphereGeometry(0.07,8,8), new THREE.MeshStandardMaterial({color:0xc9a84c,metalness:0.9,roughness:0.2}));
+knob.position.set(0.12,1.27,0.3); doorG.add(knob);
+scene.add(doorG);
 
 // Skirting boards
-const skirt = new THREE.MeshStandardMaterial({ color: 0x7a5a3a });
-mesh(new THREE.BoxGeometry(22,0.15,0.08), skirt, 0,0.075,-10.9);
-mesh(new THREE.BoxGeometry(22,0.15,0.08), skirt, 0,0.075, 10.9);
-mesh(new THREE.BoxGeometry(0.08,0.15,22), skirt,-10.9,0.075,0);
-mesh(new THREE.BoxGeometry(0.08,0.15,22), skirt, 10.9,0.075,0);
+mesh(new THREE.BoxGeometry(20,0.14,0.07), skirtMat,  0, 0.07,-11.9);
+mesh(new THREE.BoxGeometry(20,0.14,0.07), skirtMat,  0, 0.07, 11.9);
+mesh(new THREE.BoxGeometry(0.07,0.14,24),skirtMat, -9.9,0.07,  0);
+mesh(new THREE.BoxGeometry(0.07,0.14,24),skirtMat,  9.9,0.07,  0);
 
-// Desk
+// Desk helper
 function makeDesk(x, z, ry=0) {
   const mat = new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.7 });
   const g = new THREE.Group();
   const top = new THREE.Mesh(new THREE.BoxGeometry(3.2,0.08,1.3), mat);
-  top.position.y = 0.82; top.castShadow=true; top.receiveShadow=true; g.add(top);
+  top.position.y=0.82; top.castShadow=true; top.receiveShadow=true; g.add(top);
   for (const [lx,lz] of [[-1.5,-0.55],[1.5,-0.55],[-1.5,0.55],[1.5,0.55]]) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.82,0.08), mat);
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.82,0.08),mat);
     leg.position.set(lx,0.41,lz); leg.castShadow=true; g.add(leg);
   }
   g.position.set(x,0,z); g.rotation.y=ry; scene.add(g);
 }
-
-// Shelf
 function makeShelf(x, z, ry=0) {
   const mat = new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 0.8 });
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.4,2.2,1.3), mat);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.4,2.2,1.3),mat);
   body.position.y=1.1; body.castShadow=true; body.receiveShadow=true; g.add(body);
   for (const h of [0.4,0.95,1.5]) {
-    const s = new THREE.Mesh(new THREE.BoxGeometry(0.45,0.04,1.35), mat);
-    s.position.y=h; g.add(s);
+    const s=new THREE.Mesh(new THREE.BoxGeometry(0.45,0.04,1.35),mat); s.position.y=h; g.add(s);
   }
   g.position.set(x,0,z); g.rotation.y=ry; scene.add(g);
 }
 
-makeDesk(-7,-7); makeDesk(6,6,0.25);
-makeShelf(-10.6,-5,Math.PI/2); makeShelf(-10.6,4,Math.PI/2);
-makeShelf(10.6,2,-Math.PI/2);
-
-// Stacked boxes corner
-const boxMat = new THREE.MeshStandardMaterial({ color: 0x2e2e44, roughness: 0.85 });
-mesh(new THREE.BoxGeometry(1.1,1.0,1.1), boxMat, 7.5,0.5,-8.5);
-mesh(new THREE.BoxGeometry(1.3,0.8,1.0), boxMat, 8.5,0.4,-7.8);
-mesh(new THREE.BoxGeometry(0.9,1.3,0.9), boxMat, 7.8,1.05,-9.2);
+// Room 1 furniture
+makeDesk(-6, -8);
+makeShelf(-9.7, -6, Math.PI/2);
+makeShelf( 9.7, -5, -Math.PI/2);
+// Room 2 furniture
+makeDesk(5, 7, 0.2);
+makeShelf(-9.7, 7, Math.PI/2);
+const boxMat = new THREE.MeshStandardMaterial({ color: 0x3a2e20, roughness: 0.85 });
+mesh(new THREE.BoxGeometry(1.0,1.0,1.0), boxMat, -7,  0.5, 10);
+mesh(new THREE.BoxGeometry(1.2,0.7,0.9), boxMat, -7,  1.2, 10);
+mesh(new THREE.BoxGeometry(0.8,1.1,0.8), boxMat, -8,  0.55,9.2);
 
 // ── Character ────────────────────────────────────────────────
 const charGroup = new THREE.Group();
 scene.add(charGroup);
-charGroup.position.set(0,0,3);
+charGroup.position.set(0,0,-8); // start in room 1
 
 const skinMat  = new THREE.MeshStandardMaterial({ color: 0xf5c89a, roughness: 0.8 });
 const shirtMat = new THREE.MeshStandardMaterial({ color: 0xe8874a, roughness: 0.7 });
@@ -310,50 +347,102 @@ function makeNote(x, z) {
 
 function makeBriefcase(x, z) {
   const g = new THREE.Group();
-  const mat  = new THREE.MeshStandardMaterial({ color: 0x5a3e1b, roughness: 0.7, metalness: 0.1 });
-  const lmat = new THREE.MeshStandardMaterial({ color: 0x6b4a22, roughness: 0.7 });
-  const gold = new THREE.MeshStandardMaterial({ color: 0xc9a84c, metalness: 0.8, roughness: 0.2 });
+  const leather = new THREE.MeshStandardMaterial({ color: 0x2e1a08, roughness: 0.92, metalness: 0.0 });
+  const lidLeather = new THREE.MeshStandardMaterial({ color: 0x38200a, roughness: 0.9, metalness: 0.0 });
+  const metal  = new THREE.MeshStandardMaterial({ color: 0xb8a060, metalness: 0.85, roughness: 0.2 });
+  const dark   = new THREE.MeshStandardMaterial({ color: 0x1a1008, roughness: 0.9 });
 
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.1,0.6,0.38), mat);
+  // Body
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.72, 0.42), leather);
   body.castShadow=true; body.receiveShadow=true; g.add(body);
 
-  const lid = new THREE.Mesh(new THREE.BoxGeometry(1.1,0.28,0.38), lmat);
-  lid.position.set(0,0.44,0); lid.castShadow=true; g.add(lid);
-  g._lid = lid;
+  // Lid (pivots at top of body)
+  const lidPivot = new THREE.Group();
+  lidPivot.position.set(0, 0.36, 0);
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 0.42), lidLeather);
+  lid.position.y = 0.15;
+  lid.castShadow=true; lidPivot.add(lid);
+  g.add(lidPivot);
+  g._lidPivot = lidPivot;
 
-  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.14,0.025,8,12,Math.PI), gold);
-  handle.position.set(0,0.6,0); handle.rotation.z=Math.PI; g.add(handle);
+  // Metal frame edges (horizontal)
+  const hEdge = new THREE.BoxGeometry(1.46, 0.045, 0.045);
+  for (const [ey, ez] of [[0.36,0.22],[0.36,-0.22],[-0.36,0.22],[-0.36,-0.22]]) {
+    const e = new THREE.Mesh(hEdge, metal); e.position.set(0,ey,ez); g.add(e);
+  }
+  // Vertical corner edges
+  const vEdge = new THREE.BoxGeometry(0.045, 0.76, 0.045);
+  for (const [ex,ez] of [[0.72,0.22],[0.72,-0.22],[-0.72,0.22],[-0.72,-0.22]]) {
+    const e = new THREE.Mesh(vEdge, metal); e.position.set(ex,0,ez); g.add(e);
+  }
+  // Side edge strips (vertical, depth)
+  const dEdge = new THREE.BoxGeometry(0.045, 0.76, 0.44);
+  for (const ex of [0.72, -0.72]) {
+    const e = new THREE.Mesh(dEdge, metal); e.position.set(ex,0,0); g.add(e);
+  }
 
-  const latch = new THREE.Mesh(new THREE.BoxGeometry(0.14,0.07,0.07), gold);
-  latch.position.set(0,0.28,0.22); g.add(latch);
+  // Handle arc
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.17,0.03,8,18,Math.PI), metal);
+  handle.position.set(0, 0.72, 0); handle.rotation.z=Math.PI; g.add(handle);
+  // Handle mounts
+  for (const hx of [-0.17, 0.17]) {
+    const mount = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.14,0.06), metal);
+    mount.position.set(hx, 0.57, 0); g.add(mount);
+  }
 
-  const glow = new THREE.PointLight(0xc9a84c, 0.6, 4);
-  glow.position.y=1; g.add(glow);
+  // Two latches
+  for (const lx of [-0.35, 0.35]) {
+    const latchBody = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.09,0.055), metal);
+    latchBody.position.set(lx, 0.33, 0.24); g.add(latchBody);
+    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.028,0.04,8), metal);
+    btn.rotation.x=Math.PI/2; btn.position.set(lx, 0.31, 0.265); g.add(btn);
+  }
 
-  g.position.set(x,0.38,z);
+  // Center lock
+  const lockBody = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.14,0.06), metal);
+  lockBody.position.set(0, 0.33, 0.24); g.add(lockBody);
+  const keyhole = new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.07,8), dark);
+  keyhole.rotation.x=Math.PI/2; keyhole.position.set(0, 0.34, 0.275); g.add(keyhole);
+
+  // Stitching lines along top/bottom edges (thin dark strips)
+  for (const [sy, sz] of [[0.34,0.18],[0.34,-0.18],[-0.34,0.18],[-0.34,-0.18]]) {
+    const stitch = new THREE.Mesh(new THREE.BoxGeometry(1.36,0.012,0.012), dark);
+    stitch.position.set(0,sy,sz); g.add(stitch);
+  }
+
+  // Glow so it's visible
+  const glow = new THREE.PointLight(0xffcc66, 0.7, 5);
+  glow.position.set(0,1.2,0); g.add(glow);
+
+  g.position.set(x, 0.44, z);
   scene.add(g);
   return g;
 }
 
 const itemsData = [
-  { id:'num0', mesh:makeNote(-7.5,2.5),  label:`Du findest einen Zettel.\nDarauf steht: "${CODE[0]}"`,  isNote:true, collected:false },
-  { id:'num1', mesh:makeNote(7,-5),      label:`Eine alte Serviette.\nDarauf gekritzelt: "${CODE[1]}"`, isNote:true, collected:false },
-  { id:'num2', mesh:makeNote(-3,8.5),    label:`Kreide auf dem Boden.\nEin Kinderkritzel: "${CODE[2]}"`,isNote:true, collected:false },
-  { id:'case', mesh:makeBriefcase(8,-9), label:'Ein alter Aktenkoffer.\nEr hat ein Zahlenschloss.', isCase:true, collected:false },
+  { id:'num0', mesh:makeNote(-6, -10),  label:`Du findest einen Zettel.\nDarauf steht: "${CODE[0]}"`,   isNote:true, collected:false },
+  { id:'num1', mesh:makeNote( 7,  -6),  label:`Eine alte Serviette.\nDarauf gekritzelt: "${CODE[1]}"`,  isNote:true, collected:false },
+  { id:'num2', mesh:makeNote(-4,  -2),  label:`Kreide auf dem Boden.\nEin Kinderkritzel: "${CODE[2]}"`, isNote:true, collected:false },
+  { id:'case', mesh:makeBriefcase(5, 9),label:'Ein alter Aktenkoffer.\nEr hat ein Zahlenschloss.', isCase:true, collected:false },
 ];
 
 // ── Collision ─────────────────────────────────────────────────
 const BOXES = [
-  {x:-7,z:-7,hw:1.8,hd:0.8},  // desk 1
-  {x: 6,z: 6,hw:1.8,hd:0.8},  // desk 2
-  {x:-10.6,z:-5,hw:0.5,hd:0.8},
-  {x:-10.6,z: 4,hw:0.5,hd:0.8},
-  {x: 10.6,z: 2,hw:0.5,hd:0.8},
-  {x:8,z:-8.5,hw:1.5,hd:1.5}, // corner boxes
-  {x:0,z:-11,hw:12,hd:0.6},   // walls
-  {x:0,z: 11,hw:12,hd:0.6},
-  {x:-11,z:0,hw:0.6,hd:12},
-  {x: 11,z:0,hw:0.6,hd:12},
+  // Furniture
+  {x:-6, z:-8,  hw:1.8, hd:0.8},  // desk room1
+  {x: 5, z: 7,  hw:1.8, hd:0.8},  // desk room2
+  {x:-9.8,z:-6, hw:0.4, hd:0.8},  // shelf room1 left
+  {x: 9.8,z:-5, hw:0.4, hd:0.8},  // shelf room1 right
+  {x:-9.8,z: 7, hw:0.4, hd:0.8},  // shelf room2
+  {x:-7.5,z: 9.8,hw:1.2,hd:1.2},  // boxes room2
+  // Outer walls
+  {x: 0, z:-12.2, hw:11, hd:0.5},
+  {x: 0, z: 12.2, hw:11, hd:0.5},
+  {x:-10.2,z:0,   hw:0.5,hd:13},
+  {x: 10.2,z:0,   hw:0.5,hd:13},
+  // Middle wall segments (with door gap x[-2,2])
+  {x:-6,  z:0,    hw:4.2,hd:0.4},
+  {x: 6,  z:0,    hw:4.2,hd:0.4},
 ];
 function blocked(x,z) {
   const r=0.45;
@@ -432,13 +521,12 @@ function openCase() {
   closeDialog();
   mode='open';
   const caseItem = itemsData.find(i=>i.isCase);
-  if (caseItem?.mesh?._lid) {
-    const lid=caseItem.mesh._lid;
+  if (caseItem?.mesh?._lidPivot) {
+    const pivot = caseItem.mesh._lidPivot;
     let t=0;
     const iv=setInterval(()=>{
       t=Math.min(t+0.025,1);
-      lid.rotation.x = -t*Math.PI*0.85;
-      lid.position.y = 0.44 + Math.sin(t*Math.PI)*0.25;
+      pivot.rotation.x = -t * Math.PI * 0.82;
       if(t>=1) clearInterval(iv);
     },16);
   }
@@ -646,11 +734,11 @@ function animate() {
     targetCamPos = idealCamPos;
   }
 
-  // Lerp toward target, then hard-clamp so camera can never sit inside a wall
+  // Lerp toward target, then hard-clamp — camera can never be inside an outer wall
   camSmooth.lerp(targetCamPos, 0.15);
-  camSmooth.x = Math.max(-10.3, Math.min(10.3, camSmooth.x));
-  camSmooth.z = Math.max(-10.3, Math.min(10.3, camSmooth.z));
-  camSmooth.y = Math.max(1.0,   Math.min(3.7,  camSmooth.y));
+  camSmooth.x = Math.max(-9.4, Math.min(9.4,  camSmooth.x));
+  camSmooth.z = Math.max(-11.5,Math.min(11.5, camSmooth.z));
+  camSmooth.y = Math.max(1.0,  Math.min(3.7,  camSmooth.y));
   camera.position.copy(camSmooth);
 
   const lookAt = charGroup.position.clone().add(new THREE.Vector3(0, 1.2, 0));
