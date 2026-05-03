@@ -122,19 +122,19 @@ scene.fog = new THREE.Fog(0x3a3a4a, 18, 35);
 const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 80);
 
 // ── Lighting ─────────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0xfff8f0, 5));
+scene.add(new THREE.AmbientLight(0xfff8f0, 2.2));
 
-const ceilLight = new THREE.PointLight(0xfff5e0, 8, 30);
+const ceilLight = new THREE.PointLight(0xfff5e0, 5, 28);
 ceilLight.position.set(0, 3.8, 0);
 ceilLight.castShadow = true;
 ceilLight.shadow.mapSize.setScalar(1024);
 scene.add(ceilLight);
 
 // Extra fill lights so corners stay bright
-const fillA = new THREE.PointLight(0xfff0dd, 3, 18);
+const fillA = new THREE.PointLight(0xfff0dd, 2, 20);
 fillA.position.set(-6, 3.5, -6);
 scene.add(fillA);
-const fillB = new THREE.PointLight(0xfff0dd, 3, 18);
+const fillB = new THREE.PointLight(0xfff0dd, 2, 20);
 fillB.position.set(6, 3.5, 6);
 scene.add(fillB);
 
@@ -628,24 +628,29 @@ function animate() {
   // Third-person camera with wall collision
   const CAM_DIST = 5.5;
   const charHead = charGroup.position.clone().add(new THREE.Vector3(0, 1.5, 0));
-  const idealOffset = new THREE.Vector3(
-    -Math.sin(charGroup.rotation.y) * CAM_DIST,
-    3.2,
-    -Math.cos(charGroup.rotation.y) * CAM_DIST
-  );
-  const idealCamPos = charGroup.position.clone().add(idealOffset);
+  const rayDir = new THREE.Vector3(
+    -Math.sin(charGroup.rotation.y),
+    0.55,   // slight upward angle
+    -Math.cos(charGroup.rotation.y)
+  ).normalize();
+  const idealCamPos = charHead.clone().add(rayDir.clone().multiplyScalar(CAM_DIST));
 
-  // Raycast from character head toward ideal camera position
-  const toCam = idealCamPos.clone().sub(charHead);
-  const toCamLen = toCam.length();
-  camRay.set(charHead, toCam.clone().normalize());
+  // Raycast from character head toward ideal camera position to detect walls
+  camRay.set(charHead, rayDir);
   const wallHits = camRay.intersectObjects(wallMeshes);
-  let safePos = idealCamPos;
-  if (wallHits.length > 0 && wallHits[0].distance < toCamLen) {
-    // Pull camera in front of the wall with a small margin
-    safePos = charHead.clone().add(toCam.normalize().multiplyScalar(wallHits[0].distance - 0.4));
+  let targetCamPos;
+  if (wallHits.length > 0 && wallHits[0].distance < CAM_DIST) {
+    const safeDist = Math.max(0.5, wallHits[0].distance - 0.5);
+    targetCamPos = charHead.clone().add(rayDir.clone().multiplyScalar(safeDist));
+  } else {
+    targetCamPos = idealCamPos;
   }
-  camSmooth.lerp(safePos, 0.1);
+
+  // Lerp toward target, then hard-clamp so camera can never sit inside a wall
+  camSmooth.lerp(targetCamPos, 0.15);
+  camSmooth.x = Math.max(-10.3, Math.min(10.3, camSmooth.x));
+  camSmooth.z = Math.max(-10.3, Math.min(10.3, camSmooth.z));
+  camSmooth.y = Math.max(1.0,   Math.min(3.7,  camSmooth.y));
   camera.position.copy(camSmooth);
 
   const lookAt = charGroup.position.clone().add(new THREE.Vector3(0, 1.2, 0));
