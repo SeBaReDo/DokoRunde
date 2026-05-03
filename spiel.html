@@ -2,603 +2,580 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Erinnerungen — Das Spiel</title>
+<title>Erinnerungen 3D</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: #111;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    font-family: 'Segoe UI', sans-serif;
-    color: #ddd;
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; color: #ddd; }
+  canvas { display: block; }
+
+  #hud {
+    position: fixed; top: 14px; left: 14px;
+    background: rgba(0,0,0,0.65);
+    border: 1px solid #2a2a3a;
+    padding: 8px 16px; border-radius: 6px;
+    font-size: 11px; letter-spacing: 1.5px; color: #8a9e8f;
   }
-  canvas { display: block; border: 2px solid #333; border-radius: 6px; }
-  #hint {
-    margin-top: 10px;
-    font-size: 13px;
-    color: #666;
-    letter-spacing: 1px;
+  #hud .nums { color: #c9a84c; font: bold 20px monospace; margin-top: 4px; letter-spacing: 8px; }
+
+  #interact-hint {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.7); border: 1px solid #444;
+    padding: 8px 22px; border-radius: 6px;
+    font-size: 13px; display: none;
   }
+  #interact-hint span { color: #c9a84c; font-weight: bold; }
+
+  #controls-hint {
+    position: fixed; bottom: 14px; right: 14px;
+    color: #333; font-size: 11px; text-align: right; line-height: 2;
+  }
+
+  /* Dialog */
+  #dialog {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.78);
+    display: none; align-items: center; justify-content: center; z-index: 10;
+  }
+  #dialog.show { display: flex; }
+  .dbox {
+    background: #12121e; border: 2px solid #c9a84c; border-radius: 10px;
+    padding: 38px 52px; max-width: 520px; width: 90%; text-align: center;
+  }
+  .dbox h2 { color: #c9a84c; font-size: 17px; letter-spacing: 2px; margin-bottom: 16px; }
+  .dbox p  { line-height: 1.8; font-size: 15px; white-space: pre-wrap; }
+  .dbox .sub { color: #555; font-size: 12px; margin-top: 22px; letter-spacing: 1px; }
+
+  #code-display {
+    background: #0d0d0d; border: 2px solid #c9a84c; border-radius: 6px;
+    padding: 14px 28px; margin: 22px auto 0; width: fit-content;
+    font: bold 40px monospace; color: #c9a84c; letter-spacing: 14px;
+  }
+  #code-err { color: #e84a4a; font-size: 13px; min-height: 22px; margin-top: 10px; }
+
+  /* Case reveal */
+  #reveal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 20;
+  }
+  #reveal.show { display: flex; }
+  #tree-canvas {
+    border: 4px solid #c9a84c; border-radius: 4px;
+    box-shadow: 0 0 40px rgba(201,168,76,0.4);
+    margin-bottom: 22px;
+  }
+  #reveal p { font-size: 16px; color: #ddd8cc; }
+  #reveal .r-sub { color: #555; font-size: 12px; margin-top: 14px; letter-spacing: 1px; }
 </style>
 </head>
 <body>
-<canvas id="c" width="800" height="560"></canvas>
-<div id="hint">WASD oder Pfeiltasten bewegen · E interagieren</div>
+<canvas id="c"></canvas>
 
-<script>
+<div id="hud">GEFUNDENE ZAHLEN<div class="nums" id="nums">_ _ _</div></div>
+<div id="interact-hint"><span>[E]</span> <span id="hint-text">Aufheben</span></div>
+<div id="controls-hint">WASD · Bewegen<br>E · Interagieren</div>
+
+<div id="dialog">
+  <div class="dbox">
+    <h2 id="d-title">HINWEIS</h2>
+    <p id="d-text"></p>
+    <div id="code-display" style="display:none">_ _ _</div>
+    <div id="code-err"></div>
+    <p class="sub" id="d-sub">[ ENTER ]  WEITER</p>
+  </div>
+</div>
+
+<div id="reveal">
+  <canvas id="tree-canvas" width="360" height="270"></canvas>
+  <p>Ein altes Foto — ein Tannenbaum.</p>
+  <p class="r-sub">Wer erinnert sich noch daran?</p>
+  <p class="r-sub" style="margin-top:24px">[ ENTER ]  SCHLIEßEN</p>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ── Renderer ─────────────────────────────────────────────────
 const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const W = canvas.width, H = canvas.height;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.85;
 
-// ── Tile system ──────────────────────────────────────────────
-const TILE = 48;
-const COLS = Math.floor(W / TILE); // 16
-const ROWS = Math.floor(H / TILE); // 11
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
 
-// Map: 0=floor, 1=wall
-const MAP = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,1,1,0,0,0,0,0,1,1,0,0,0,1],
-  [1,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1],
-  [1,0,0,1,1,0,0,0,0,0,1,1,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-];
+// ── Scene & Camera ───────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a12);
+scene.fog = new THREE.FogExp2(0x0a0a12, 0.045);
 
-function isWall(tx, ty) {
-  if (ty < 0 || ty >= ROWS || tx < 0 || tx >= COLS) return true;
-  return MAP[ty][tx] === 1;
+const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 80);
+
+// ── Lighting ─────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x303050, 2));
+
+const ceiling = new THREE.PointLight(0xfff0cc, 3.5, 20);
+ceiling.position.set(0, 3.8, 0);
+ceiling.castShadow = true;
+ceiling.shadow.mapSize.setScalar(1024);
+scene.add(ceiling);
+
+const moodA = new THREE.PointLight(0x2244bb, 1, 12);
+moodA.position.set(-9, 2, -9);
+scene.add(moodA);
+
+const moodB = new THREE.PointLight(0x6622aa, 0.7, 10);
+moodB.position.set(9, 2, -9);
+scene.add(moodB);
+
+// ── Helpers ───────────────────────────────────────────────────
+function mesh(geo, mat, x=0, y=0, z=0, ry=0) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  m.rotation.y = ry;
+  m.castShadow = true;
+  m.receiveShadow = true;
+  scene.add(m);
+  return m;
 }
+
+// ── Room ─────────────────────────────────────────────────────
+const floorMat  = new THREE.MeshStandardMaterial({ color: 0x1a1a28, roughness: 0.95 });
+const wallMat   = new THREE.MeshStandardMaterial({ color: 0x1c1c2c, roughness: 0.9  });
+const ceilMat   = new THREE.MeshStandardMaterial({ color: 0x101018 });
+
+mesh(new THREE.PlaneGeometry(22,22), floorMat, 0,0,0,-Math.PI/2);
+mesh(new THREE.PlaneGeometry(22,22), ceilMat,  0,4,0, Math.PI/2);
+mesh(new THREE.BoxGeometry(22,4,0.3), wallMat, 0,2,-11);
+mesh(new THREE.BoxGeometry(22,4,0.3), wallMat, 0,2, 11);
+mesh(new THREE.BoxGeometry(0.3,4,22), wallMat,-11,2, 0);
+mesh(new THREE.BoxGeometry(0.3,4,22), wallMat, 11,2, 0);
+
+// Skirting boards
+const skirt = new THREE.MeshStandardMaterial({ color: 0x282838 });
+mesh(new THREE.BoxGeometry(22,0.15,0.08), skirt, 0,0.075,-10.9);
+mesh(new THREE.BoxGeometry(22,0.15,0.08), skirt, 0,0.075, 10.9);
+mesh(new THREE.BoxGeometry(0.08,0.15,22), skirt,-10.9,0.075,0);
+mesh(new THREE.BoxGeometry(0.08,0.15,22), skirt, 10.9,0.075,0);
+
+// Desk
+function makeDesk(x, z, ry=0) {
+  const mat = new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.7 });
+  const g = new THREE.Group();
+  const top = new THREE.Mesh(new THREE.BoxGeometry(3.2,0.08,1.3), mat);
+  top.position.y = 0.82; top.castShadow=true; top.receiveShadow=true; g.add(top);
+  for (const [lx,lz] of [[-1.5,-0.55],[1.5,-0.55],[-1.5,0.55],[1.5,0.55]]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.82,0.08), mat);
+    leg.position.set(lx,0.41,lz); leg.castShadow=true; g.add(leg);
+  }
+  g.position.set(x,0,z); g.rotation.y=ry; scene.add(g);
+}
+
+// Shelf
+function makeShelf(x, z, ry=0) {
+  const mat = new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 0.8 });
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.4,2.2,1.3), mat);
+  body.position.y=1.1; body.castShadow=true; body.receiveShadow=true; g.add(body);
+  for (const h of [0.4,0.95,1.5]) {
+    const s = new THREE.Mesh(new THREE.BoxGeometry(0.45,0.04,1.35), mat);
+    s.position.y=h; g.add(s);
+  }
+  g.position.set(x,0,z); g.rotation.y=ry; scene.add(g);
+}
+
+makeDesk(-7,-7); makeDesk(6,6,0.25);
+makeShelf(-10.6,-5,Math.PI/2); makeShelf(-10.6,4,Math.PI/2);
+makeShelf(10.6,2,-Math.PI/2);
+
+// Stacked boxes corner
+const boxMat = new THREE.MeshStandardMaterial({ color: 0x2e2e44, roughness: 0.85 });
+mesh(new THREE.BoxGeometry(1.1,1.0,1.1), boxMat, 7.5,0.5,-8.5);
+mesh(new THREE.BoxGeometry(1.3,0.8,1.0), boxMat, 8.5,0.4,-7.8);
+mesh(new THREE.BoxGeometry(0.9,1.3,0.9), boxMat, 7.8,1.05,-9.2);
+
+// ── Character ────────────────────────────────────────────────
+const charGroup = new THREE.Group();
+scene.add(charGroup);
+charGroup.position.set(0,0,3);
+
+const skinMat  = new THREE.MeshStandardMaterial({ color: 0xf5c89a, roughness: 0.8 });
+const shirtMat = new THREE.MeshStandardMaterial({ color: 0xe8874a, roughness: 0.7 });
+const pantsMat = new THREE.MeshStandardMaterial({ color: 0x3a3a6a, roughness: 0.8 });
+const shoesMat = new THREE.MeshStandardMaterial({ color: 0x1a1008, roughness: 0.9 });
+const hairMat  = new THREE.MeshStandardMaterial({ color: 0x3a2010, roughness: 1.0 });
+
+function charMesh(geo, mat, x,y,z) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x,y,z); m.castShadow=true; charGroup.add(m); return m;
+}
+
+const charBody = charMesh(new THREE.BoxGeometry(0.7,0.9,0.4),  shirtMat, 0,1.35,0);
+const charHead = charMesh(new THREE.BoxGeometry(0.5,0.5,0.5),  skinMat,  0,2.05,0);
+               charMesh(new THREE.BoxGeometry(0.52,0.2,0.52),  hairMat,  0,2.35,0);
+const legL     = charMesh(new THREE.BoxGeometry(0.28,0.72,0.3),pantsMat,-0.18,0.66,0);
+const legR     = charMesh(new THREE.BoxGeometry(0.28,0.72,0.3),pantsMat, 0.18,0.66,0);
+               charMesh(new THREE.BoxGeometry(0.3,0.14,0.44),  shoesMat,-0.18,0.21,0.07);
+               charMesh(new THREE.BoxGeometry(0.3,0.14,0.44),  shoesMat, 0.18,0.21,0.07);
 
 // ── Items ────────────────────────────────────────────────────
-// The 3 code numbers: fixed digits that form the code
-const CODE = ['4', '2', '7'];
-const FULL_CODE = CODE.join('');
-
-const items = [
-  { id: 'num0', tx: 2,  ty: 2,  label: `Zettel mit einer Zahl: "${CODE[0]}"`,   icon: 'note',  collected: false },
-  { id: 'num1', tx: 13, ty: 5,  label: `Alte Serviette — Zahl: "${CODE[1]}"`,   icon: 'note',  collected: false },
-  { id: 'num2', tx: 6,  ty: 9,  label: `Kreide auf dem Boden: "${CODE[2]}"`,    icon: 'note',  collected: false },
-  { id: 'case', tx: 13, ty: 2,  label: 'Ein alter Aktenkoffer.',                icon: 'case',  collected: false, isCase: true },
-];
-
-// ── Player ───────────────────────────────────────────────────
-const player = {
-  tx: 1, ty: 5,       // tile position
-  px: 0, py: 0,       // pixel position (interpolated)
-  dir: 'down',        // facing direction
-  moving: false,
-  moveTimer: 0,
-  MOVE_SPEED: 8,      // frames per tile
-};
-player.px = player.tx * TILE;
-player.py = player.ty * TILE;
-
-let targetPx = player.px, targetPy = player.py;
-
-// ── Collected numbers ────────────────────────────────────────
+const CODE = ['4','2','7'];
+const FULL_CODE = '427';
 const collectedNums = [];
 
-// ── UI state ─────────────────────────────────────────────────
-// modes: 'play' | 'message' | 'code_prompt' | 'open_case'
-let uiMode = 'play';
-let messageText = '';
-let codeInput = '';
-let codeError = '';
-let caseOpenAnim = 0; // 0→1 opening animation
+function makeNote(x, z) {
+  const g = new THREE.Group();
+  const paper = new THREE.Mesh(
+    new THREE.BoxGeometry(0.32, 0.42, 0.025),
+    new THREE.MeshStandardMaterial({ color: 0xf0e0a0, roughness: 0.9, emissive: 0xc9a84c, emissiveIntensity: 0.15 })
+  );
+  paper.castShadow = true; g.add(paper);
+  const glow = new THREE.PointLight(0xc9a84c, 1.2, 3.5);
+  g.add(glow);
+  g.position.set(x, 0.85, z);
+  scene.add(g);
+  return g;
+}
 
-// ── Input ────────────────────────────────────────────────────
+function makeBriefcase(x, z) {
+  const g = new THREE.Group();
+  const mat  = new THREE.MeshStandardMaterial({ color: 0x5a3e1b, roughness: 0.7, metalness: 0.1 });
+  const lmat = new THREE.MeshStandardMaterial({ color: 0x6b4a22, roughness: 0.7 });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xc9a84c, metalness: 0.8, roughness: 0.2 });
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.1,0.6,0.38), mat);
+  body.castShadow=true; body.receiveShadow=true; g.add(body);
+
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(1.1,0.28,0.38), lmat);
+  lid.position.set(0,0.44,0); lid.castShadow=true; g.add(lid);
+  g._lid = lid;
+
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.14,0.025,8,12,Math.PI), gold);
+  handle.position.set(0,0.6,0); handle.rotation.z=Math.PI; g.add(handle);
+
+  const latch = new THREE.Mesh(new THREE.BoxGeometry(0.14,0.07,0.07), gold);
+  latch.position.set(0,0.28,0.22); g.add(latch);
+
+  const glow = new THREE.PointLight(0xc9a84c, 0.6, 4);
+  glow.position.y=1; g.add(glow);
+
+  g.position.set(x,0.38,z);
+  scene.add(g);
+  return g;
+}
+
+const itemsData = [
+  { id:'num0', mesh:makeNote(-7.5,2.5),  label:`Du findest einen Zettel.\nDarauf steht: "${CODE[0]}"`,  isNote:true, collected:false },
+  { id:'num1', mesh:makeNote(7,-5),      label:`Eine alte Serviette.\nDarauf gekritzelt: "${CODE[1]}"`, isNote:true, collected:false },
+  { id:'num2', mesh:makeNote(-3,8.5),    label:`Kreide auf dem Boden.\nEin Kinderkritzel: "${CODE[2]}"`,isNote:true, collected:false },
+  { id:'case', mesh:makeBriefcase(8,-9), label:'Ein alter Aktenkoffer.\nEr hat ein Zahlenschloss.', isCase:true, collected:false },
+];
+
+// ── Collision ─────────────────────────────────────────────────
+const BOXES = [
+  {x:-7,z:-7,hw:1.8,hd:0.8},  // desk 1
+  {x: 6,z: 6,hw:1.8,hd:0.8},  // desk 2
+  {x:-10.6,z:-5,hw:0.5,hd:0.8},
+  {x:-10.6,z: 4,hw:0.5,hd:0.8},
+  {x: 10.6,z: 2,hw:0.5,hd:0.8},
+  {x:8,z:-8.5,hw:1.5,hd:1.5}, // corner boxes
+  {x:0,z:-11,hw:12,hd:0.6},   // walls
+  {x:0,z: 11,hw:12,hd:0.6},
+  {x:-11,z:0,hw:0.6,hd:12},
+  {x: 11,z:0,hw:0.6,hd:12},
+];
+function blocked(x,z) {
+  const r=0.45;
+  return BOXES.some(b => Math.abs(x-b.x)<b.hw+r && Math.abs(z-b.z)<b.hd+r);
+}
+
+// ── Input ─────────────────────────────────────────────────────
 const keys = {};
-document.addEventListener('keydown', e => {
-  keys[e.code] = true;
+document.addEventListener('keydown', e => { keys[e.code]=true; onKey(e); });
+document.addEventListener('keyup',   e => { keys[e.code]=false; });
 
-  if (uiMode === 'message') {
-    if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyE') {
-      uiMode = 'play';
-    }
-    e.preventDefault();
-    return;
-  }
+// ── UI state ──────────────────────────────────────────────────
+let mode = 'play'; // play | message | code | open
+let codeInput = '';
 
-  if (uiMode === 'code_prompt') {
-    if (e.code === 'Enter') {
-      if (codeInput === FULL_CODE) {
-        uiMode = 'open_case';
-        caseOpenAnim = 0;
-      } else {
-        codeError = 'Falscher Code. Versuch es nochmal.';
-        codeInput = '';
-      }
-    } else if (e.code === 'Backspace') {
-      codeInput = codeInput.slice(0, -1);
-      codeError = '';
-    } else if (e.key >= '0' && e.key <= '9' && codeInput.length < 3) {
-      codeInput += e.key;
-      codeError = '';
-    } else if (e.code === 'Escape') {
-      uiMode = 'play';
-      codeInput = '';
-      codeError = '';
-    }
-    e.preventDefault();
-    return;
-  }
+const numsEl      = document.getElementById('nums');
+const interactEl  = document.getElementById('interact-hint');
+const hintTextEl  = document.getElementById('hint-text');
+const dialogEl    = document.getElementById('dialog');
+const dTitleEl    = document.getElementById('d-title');
+const dTextEl     = document.getElementById('d-text');
+const codeDispEl  = document.getElementById('code-display');
+const codeErrEl   = document.getElementById('code-err');
+const dSubEl      = document.getElementById('d-sub');
+const revealEl    = document.getElementById('reveal');
 
-  if (uiMode === 'open_case') {
-    if (e.code === 'Enter' || e.code === 'Space' || e.code === 'Escape') {
-      uiMode = 'play';
-    }
-    e.preventDefault();
-    return;
-  }
-
-  if (e.code === 'KeyE' || e.code === 'Enter') interact();
-  e.preventDefault();
-});
-document.addEventListener('keyup', e => { keys[e.code] = false; });
-
-// ── Movement ─────────────────────────────────────────────────
-let moveDelay = 0;
-
-function tryMove(dx, dy, dir) {
-  if (player.moving) return;
-  player.dir = dir;
-  const nx = player.tx + dx;
-  const ny = player.ty + dy;
-  if (isWall(nx, ny)) return;
-  // don't walk into case tile
-  const caseItem = items.find(i => i.isCase);
-  if (caseItem && nx === caseItem.tx && ny === caseItem.ty) return;
-  player.tx = nx;
-  player.ty = ny;
-  targetPx = nx * TILE;
-  targetPy = ny * TILE;
-  player.moving = true;
-  player.moveTimer = player.MOVE_SPEED;
+function updateNumsHUD() {
+  const s = ['_','_','_'];
+  collectedNums.forEach((id,i) => { s[i]=CODE[parseInt(id.replace('num',''))]; });
+  numsEl.textContent = s.join(' ');
 }
 
-// ── Interact ─────────────────────────────────────────────────
+function showMsg(title, text) {
+  mode='message';
+  dTitleEl.textContent=title;
+  dTextEl.textContent=text;
+  codeDispEl.style.display='none';
+  codeErrEl.textContent='';
+  dSubEl.textContent='[ ENTER ]  WEITER';
+  dialogEl.classList.add('show');
+}
+
+function showCode() {
+  mode='code'; codeInput='';
+  dTitleEl.textContent='ZAHLENSCHLOSS';
+  dTextEl.textContent='Gib den 3-stelligen Code ein:';
+  codeDispEl.style.display='block';
+  codeDispEl.textContent='_ _ _';
+  codeErrEl.textContent='';
+  dSubEl.textContent='Zahlen tippen  ·  ENTER bestätigen  ·  ESC abbrechen';
+  dialogEl.classList.add('show');
+}
+
+function closeDialog() { mode='play'; dialogEl.classList.remove('show'); }
+
+function updateCodeDisp() {
+  codeDispEl.textContent = (codeInput.padEnd(3,'_')).split('').join(' ');
+}
+
 function interact() {
-  // Check adjacent tiles (and current tile)
-  const dirs = [[0,0],[1,0],[-1,0],[0,1],[0,-1]];
-  for (const [dx, dy] of dirs) {
-    const tx = player.tx + dx;
-    const ty = player.ty + dy;
-    for (const item of items) {
-      if (item.tx === tx && item.ty === ty && !item.collected) {
-        if (item.isCase) {
-          // Need all 3 numbers first
-          if (collectedNums.length < 3) {
-            showMessage('Der Koffer hat ein Zahlenschloss.\nDu brauchst noch den Code...');
-          } else {
-            uiMode = 'code_prompt';
-            codeInput = '';
-            codeError = '';
-          }
-        } else {
-          item.collected = true;
-          collectedNums.push(item.id);
-          showMessage(item.label);
-        }
-        return;
-      }
-    }
+  const near = getNear();
+  if (!near) return;
+  if (near.isCase) {
+    if (collectedNums.length<3) showMsg('AKTENKOFFER','Der Koffer hat ein Zahlenschloss.\nDu brauchst noch den Code...');
+    else showCode();
+  } else {
+    near.collected=true;
+    scene.remove(near.mesh);
+    collectedNums.push(near.id);
+    updateNumsHUD();
+    showMsg('GEFUNDEN!', near.label);
   }
 }
 
-function showMessage(text) {
-  messageText = text;
-  uiMode = 'message';
-}
-
-// ── Update ───────────────────────────────────────────────────
-function update() {
-  if (uiMode !== 'play') {
-    if (uiMode === 'open_case' && caseOpenAnim < 1) caseOpenAnim = Math.min(1, caseOpenAnim + 0.03);
-    return;
+function openCase() {
+  closeDialog();
+  mode='open';
+  const caseItem = itemsData.find(i=>i.isCase);
+  if (caseItem?.mesh?._lid) {
+    const lid=caseItem.mesh._lid;
+    let t=0;
+    const iv=setInterval(()=>{
+      t=Math.min(t+0.025,1);
+      lid.rotation.x = -t*Math.PI*0.85;
+      lid.position.y = 0.44 + Math.sin(t*Math.PI)*0.25;
+      if(t>=1) clearInterval(iv);
+    },16);
   }
-
-  // Smooth movement interpolation
-  if (player.moving) {
-    player.moveTimer--;
-    const t = 1 - player.moveTimer / player.MOVE_SPEED;
-    player.px += (targetPx - player.px) * 0.3;
-    player.py += (targetPy - player.py) * 0.3;
-    if (player.moveTimer <= 0) {
-      player.px = targetPx;
-      player.py = targetPy;
-      player.moving = false;
-    }
-  }
-
-  if (moveDelay > 0) { moveDelay--; return; }
-
-  if (keys['ArrowLeft']  || keys['KeyA']) { tryMove(-1, 0, 'left');  moveDelay = 8; }
-  if (keys['ArrowRight'] || keys['KeyD']) { tryMove( 1, 0, 'right'); moveDelay = 8; }
-  if (keys['ArrowUp']    || keys['KeyW']) { tryMove( 0,-1, 'up');    moveDelay = 8; }
-  if (keys['ArrowDown']  || keys['KeyS']) { tryMove( 0, 1, 'down');  moveDelay = 8; }
+  setTimeout(()=>{
+    drawTree();
+    revealEl.classList.add('show');
+  }, 700);
 }
 
-// ── Draw ─────────────────────────────────────────────────────
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-
-  drawWorld();
-  drawItems();
-  drawPlayer();
-  drawHUD();
-
-  if (uiMode === 'message')     drawMessage();
-  if (uiMode === 'code_prompt') drawCodePrompt();
-  if (uiMode === 'open_case')   drawOpenCase();
-}
-
-function drawWorld() {
-  for (let row = 0; row < ROWS; row++) {
-    for (let col = 0; col < COLS; col++) {
-      const x = col * TILE, y = row * TILE;
-      if (MAP[row][col] === 1) {
-        // Wall — draw with depth illusion
-        ctx.fillStyle = '#2a2a3a';
-        ctx.fillRect(x, y, TILE, TILE);
-        // Top face highlight
-        ctx.fillStyle = '#3a3a4f';
-        ctx.fillRect(x, y, TILE, 8);
-        // Side shadow
-        ctx.fillStyle = '#1a1a26';
-        ctx.fillRect(x, y + TILE - 6, TILE, 6);
-      } else {
-        // Floor — checkerboard subtle
-        const even = (row + col) % 2 === 0;
-        ctx.fillStyle = even ? '#1e1e2a' : '#22222f';
-        ctx.fillRect(x, y, TILE, TILE);
-        // Floor grid lines
-        ctx.strokeStyle = '#28283a';
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(x, y, TILE, TILE);
-      }
-    }
-  }
-}
-
-function drawItems() {
-  for (const item of items) {
+function getNear() {
+  for (const item of itemsData) {
     if (item.collected && !item.isCase) continue;
-    const x = item.tx * TILE + TILE / 2;
-    const y = item.ty * TILE + TILE / 2;
-
-    if (item.icon === 'note') {
-      // Folded note icon
-      ctx.fillStyle = '#c9a84c';
-      ctx.beginPath();
-      ctx.roundRect(x - 10, y - 12, 20, 24, 2);
-      ctx.fill();
-      ctx.fillStyle = '#0d0d0d';
-      ctx.fillRect(x - 6, y - 6, 12, 2);
-      ctx.fillRect(x - 6, y - 2, 12, 2);
-      ctx.fillRect(x - 6, y + 2, 8, 2);
-      // Glow
-      ctx.shadowColor = '#c9a84c';
-      ctx.shadowBlur = 10;
-      ctx.strokeStyle = '#e8c96a';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-
-    if (item.icon === 'case') {
-      drawCase(x, y, item.collected ? 1 : 0);
-    }
-  }
-}
-
-function drawCase(cx, cy, openAmount) {
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.ellipse(cx, cy + 16, 22, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Body
-  ctx.fillStyle = '#5a3e1b';
-  ctx.fillRect(cx - 20, cy - 10, 40, 24);
-  // Lid (rotates open)
-  ctx.save();
-  ctx.translate(cx, cy - 10);
-  ctx.rotate(-openAmount * Math.PI * 0.7);
-  ctx.fillStyle = '#6b4a22';
-  ctx.fillRect(-20, -14, 40, 14);
-  // Lid highlight
-  ctx.fillStyle = '#8a6030';
-  ctx.fillRect(-20, -14, 40, 3);
-  ctx.restore();
-
-  // Latch
-  ctx.fillStyle = '#c9a84c';
-  ctx.fillRect(cx - 5, cy - 12, 10, 6);
-  // Handle
-  ctx.strokeStyle = '#c9a84c';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy - 18, 8, Math.PI, 0);
-  ctx.stroke();
-}
-
-function drawPlayer() {
-  const px = player.px + TILE / 2;
-  const py = player.py + TILE / 2;
-  const t = Date.now() / 200;
-  const bob = Math.sin(t) * (player.moving ? 2 : 0.5);
-
-  ctx.save();
-  ctx.translate(px, py + bob);
-
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath();
-  ctx.ellipse(0, 14, 10, 4, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  const d = player.dir;
-
-  // Legs
-  const legSwing = player.moving ? Math.sin(t * 2) * 5 : 0;
-  ctx.fillStyle = '#3a3a6a';
-  if (d === 'down' || d === 'up') {
-    ctx.fillRect(-7 + legSwing, 4, 6, 10);
-    ctx.fillRect( 1 - legSwing, 4, 6, 10);
-  } else {
-    ctx.fillRect(-4, 4, 8, 10);
-  }
-
-  // Body
-  ctx.fillStyle = '#e8874a';
-  ctx.fillRect(-9, -8, 18, 14);
-
-  // Arms (side view)
-  if (d === 'left' || d === 'right') {
-    ctx.fillStyle = '#e8874a';
-    ctx.fillRect(d === 'right' ? 9 : -13, -6, 4, 10);
-  }
-
-  // Head
-  ctx.fillStyle = '#f5c89a';
-  ctx.fillRect(-8, -20, 16, 14);
-
-  // Hair
-  ctx.fillStyle = '#3a2010';
-  ctx.fillRect(-8, -20, 16, 5);
-
-  // Eyes / face
-  if (d === 'down') {
-    ctx.fillStyle = '#222';
-    ctx.fillRect(-4, -12, 3, 3);
-    ctx.fillRect( 2, -12, 3, 3);
-  } else if (d === 'up') {
-    // back of head — nothing
-  } else {
-    ctx.fillStyle = '#222';
-    const ex = d === 'right' ? 3 : -5;
-    ctx.fillRect(ex, -12, 3, 3);
-  }
-
-  ctx.restore();
-}
-
-function drawHUD() {
-  // Collected numbers display
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(8, 8, 200, 36);
-  ctx.strokeStyle = '#333';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(8, 8, 200, 36);
-
-  ctx.fillStyle = '#8a9e8f';
-  ctx.font = '12px "Segoe UI", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('GEFUNDENE ZAHLEN:', 16, 24);
-
-  const slots = ['_', '_', '_'];
-  collectedNums.forEach((id, i) => {
-    const item = items.find(it => it.id === id);
-    if (item) slots[i] = CODE[parseInt(id.replace('num', ''))];
-  });
-  ctx.fillStyle = '#c9a84c';
-  ctx.font = 'bold 16px monospace';
-  ctx.fillText(slots.join('  '), 16, 40);
-
-  // Interact hint
-  const nearItem = getNearItem();
-  if (nearItem && uiMode === 'play') {
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.fillRect(W/2 - 120, H - 44, 240, 32);
-    ctx.fillStyle = '#ddd';
-    ctx.font = '13px "Segoe UI", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('[E]  ' + (nearItem.isCase ? 'Koffer untersuchen' : 'Aufheben'), W/2, H - 23);
-  }
-}
-
-function getNearItem() {
-  const dirs = [[0,0],[1,0],[-1,0],[0,1],[0,-1]];
-  for (const [dx, dy] of dirs) {
-    const tx = player.tx + dx, ty = player.ty + dy;
-    for (const item of items) {
-      if (item.tx === tx && item.ty === ty && !item.collected) return item;
-      if (item.tx === tx && item.ty === ty && item.isCase) return item;
-    }
+    if (charGroup.position.distanceTo(item.mesh.position) < 2.6) return item;
   }
   return null;
 }
 
-function drawMessage() {
-  ctx.fillStyle = 'rgba(0,0,0,0.75)';
-  ctx.fillRect(0, 0, W, H);
-
-  const bw = 500, bh = 160;
-  const bx = (W - bw) / 2, by = (H - bh) / 2;
-  ctx.fillStyle = '#1a1a2a';
-  ctx.strokeStyle = '#c9a84c';
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill(); ctx.stroke();
-
-  ctx.fillStyle = '#ddd8cc';
-  ctx.font = '16px "Segoe UI", sans-serif';
-  ctx.textAlign = 'center';
-  const lines = messageText.split('\n');
-  lines.forEach((line, i) => ctx.fillText(line, W / 2, by + 50 + i * 28));
-
-  ctx.fillStyle = '#c9a84c';
-  ctx.font = '12px "Segoe UI", sans-serif';
-  ctx.fillText('[ ENTER ]  Weiter', W / 2, by + bh - 18);
-}
-
-function drawCodePrompt() {
-  ctx.fillStyle = 'rgba(0,0,0,0.8)';
-  ctx.fillRect(0, 0, W, H);
-
-  const bw = 420, bh = 220;
-  const bx = (W - bw) / 2, by = (H - bh) / 2;
-  ctx.fillStyle = '#1a1a2a';
-  ctx.strokeStyle = '#c9a84c';
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill(); ctx.stroke();
-
-  ctx.fillStyle = '#c9a84c';
-  ctx.font = 'bold 18px "Segoe UI", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('ZAHLENSCHLOSS', W / 2, by + 40);
-
-  ctx.fillStyle = '#8a9e8f';
-  ctx.font = '13px "Segoe UI", sans-serif';
-  ctx.fillText('Gib den 3-stelligen Code ein:', W / 2, by + 70);
-
-  // Code display
-  ctx.fillStyle = '#0d0d0d';
-  ctx.fillRect(W/2 - 70, by + 85, 140, 50);
-  ctx.strokeStyle = '#c9a84c';
-  ctx.strokeRect(W/2 - 70, by + 85, 140, 50);
-  ctx.fillStyle = '#c9a84c';
-  ctx.font = 'bold 32px monospace';
-  const display = (codeInput + '___').slice(0, 3).split('').join(' ');
-  ctx.fillText(display, W / 2, by + 122);
-
-  if (codeError) {
-    ctx.fillStyle = '#e84a4a';
-    ctx.font = '13px "Segoe UI", sans-serif';
-    ctx.fillText(codeError, W / 2, by + 158);
+function onKey(e) {
+  if (mode==='message') {
+    if (['Enter','Space','KeyE'].includes(e.code)) closeDialog();
+    return;
   }
-
-  ctx.fillStyle = '#555';
-  ctx.font = '12px "Segoe UI", sans-serif';
-  ctx.fillText('Zahlen tippen  ·  ENTER bestätigen  ·  ESC abbrechen', W / 2, by + bh - 16);
-}
-
-function drawOpenCase() {
-  ctx.fillStyle = 'rgba(0,0,0,0.85)';
-  ctx.fillRect(0, 0, W, H);
-
-  // Animated case opening
-  const cx = W / 2, cy = H / 2 - 40;
-  drawCase(cx, cy, caseOpenAnim);
-
-  if (caseOpenAnim > 0.6) {
-    const alpha = Math.min(1, (caseOpenAnim - 0.6) / 0.4);
-    ctx.globalAlpha = alpha;
-
-    // Picture frame inside the case
-    ctx.fillStyle = '#2a1a0a';
-    ctx.fillRect(cx - 80, cy - 80, 160, 120);
-    ctx.strokeStyle = '#c9a84c';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(cx - 80, cy - 80, 160, 120);
-
-    // Draw a Tannenbaum (Christmas tree) with canvas
-    drawTannenbaum(cx, cy - 25);
-
-    ctx.globalAlpha = 1;
-
-    ctx.fillStyle = '#ddd8cc';
-    ctx.font = '15px "Segoe UI", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Ein altes Foto — ein Tannenbaum.', cx, cy + 70);
-    ctx.fillStyle = '#8a9e8f';
-    ctx.font = '13px "Segoe UI", sans-serif';
-    ctx.fillText('Wer erinnert sich noch daran?', cx, cy + 92);
-
-    ctx.fillStyle = '#c9a84c';
-    ctx.font = '12px "Segoe UI", sans-serif';
-    ctx.fillText('[ ENTER ]  Schließen', cx, H - 30);
+  if (mode==='code') {
+    if (e.key>='0' && e.key<='9' && codeInput.length<3) { codeInput+=e.key; updateCodeDisp(); }
+    else if (e.code==='Backspace') { codeInput=codeInput.slice(0,-1); updateCodeDisp(); codeErrEl.textContent=''; }
+    else if (e.code==='Enter') {
+      if (codeInput===FULL_CODE) openCase();
+      else { codeErrEl.textContent='Falscher Code. Versuch es nochmal.'; codeInput=''; updateCodeDisp(); }
+    }
+    else if (e.code==='Escape') closeDialog();
+    return;
   }
+  if (mode==='open') {
+    if (['Enter','Space','Escape'].includes(e.code)) { mode='play'; revealEl.classList.remove('show'); }
+    return;
+  }
+  if (e.code==='KeyE' || e.code==='Enter') interact();
 }
 
-function drawTannenbaum(cx, cy) {
-  // Tree layers (bottom to top)
-  const layers = [
-    { y:  30, w: 70 },
-    { y:  10, w: 55 },
-    { y: -10, w: 40 },
-    { y: -28, w: 26 },
-  ];
-  ctx.fillStyle = '#2e7d52';
+// ── Christmas tree canvas ─────────────────────────────────────
+function drawTree() {
+  const tc=document.getElementById('tree-canvas');
+  const tctx=tc.getContext('2d');
+  const tw=tc.width, th=tc.height;
+
+  // Old photo background
+  const bg=tctx.createLinearGradient(0,0,tw,th);
+  bg.addColorStop(0,'#f2e4b8'); bg.addColorStop(1,'#e5d098');
+  tctx.fillStyle=bg; tctx.fillRect(0,0,tw,th);
+
+  // Vignette
+  const vig=tctx.createRadialGradient(tw/2,th/2,th*0.18,tw/2,th/2,th*0.72);
+  vig.addColorStop(0,'rgba(0,0,0,0)'); vig.addColorStop(1,'rgba(80,50,10,0.45)');
+  tctx.fillStyle=vig; tctx.fillRect(0,0,tw,th);
+
+  const cx=tw/2, cy=th/2+15;
+
+  // Tree layers
+  const layers=[{y:48,w:100},{y:22,w:78},{y:-4,w:58},{y:-26,w:40},{y:-46,w:24}];
   for (const l of layers) {
-    ctx.beginPath();
-    ctx.moveTo(cx, cy + l.y - 28);
-    ctx.lineTo(cx - l.w, cy + l.y);
-    ctx.lineTo(cx + l.w, cy + l.y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#1a5a35';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    tctx.beginPath();
+    tctx.moveTo(cx,cy+l.y-38);
+    tctx.lineTo(cx-l.w,cy+l.y);
+    tctx.lineTo(cx+l.w,cy+l.y);
+    tctx.closePath();
+    tctx.fillStyle='#2a6535'; tctx.fill();
+    tctx.strokeStyle='#1a4525'; tctx.lineWidth=1; tctx.stroke();
   }
+
   // Trunk
-  ctx.fillStyle = '#5a3e1b';
-  ctx.fillRect(cx - 8, cy + 32, 16, 18);
-  // Star on top
-  ctx.fillStyle = '#e8c96a';
-  drawStar5(cx, cy - 56, 8);
-  // Decorations
-  const decos = [
-    {x: cx - 20, y: cy + 5},  {x: cx + 15, y: cy},
-    {x: cx - 5,  y: cy + 20}, {x: cx + 25, y: cy + 20},
-    {x: cx - 30, y: cy + 22}, {x: cx,      y: cy - 12},
-  ];
-  for (const d of decos) {
-    ctx.fillStyle = ['#e84a4a','#c9a84c','#4a9ee8'][Math.floor(Math.random()*3)];
-    ctx.beginPath(); ctx.arc(d.x, d.y, 4, 0, Math.PI * 2); ctx.fill();
+  tctx.fillStyle='#6b3a1a';
+  tctx.fillRect(cx-11,cy+50,22,25);
+
+  // Baubles
+  const bcols=['#cc2222','#c9a84c','#2244cc','#cc44aa','#22aa44','#ffffff'];
+  const decos=[{x:-28,y:8},{x:22,y:4},{x:-12,y:24},{x:32,y:26},{x:-45,y:30},
+               {x:8,y:-4},{x:-20,y:-16},{x:24,y:-20},{x:-6,y:-34},{x:48,y:44},{x:-55,y:44}];
+  decos.forEach((d,i)=>{
+    const col=bcols[i%bcols.length];
+    tctx.beginPath(); tctx.arc(cx+d.x,cy+d.y,5,0,Math.PI*2);
+    tctx.fillStyle=col; tctx.fill();
+    tctx.strokeStyle='rgba(255,255,255,0.4)'; tctx.lineWidth=1; tctx.stroke();
+  });
+
+  // Star
+  tctx.fillStyle='#f0c030';
+  drawStar2d(tctx,cx,cy-83,13,5);
+
+  // Garland lines (simple arcs)
+  tctx.strokeStyle='rgba(180,120,20,0.4)'; tctx.lineWidth=1.5;
+  for (const l of layers.slice(0,4)) {
+    tctx.beginPath();
+    tctx.ellipse(cx,cy+l.y-10,l.w*0.7,8,0,0,Math.PI);
+    tctx.stroke();
   }
+
+  // Snow on branches
+  tctx.fillStyle='rgba(255,255,255,0.55)';
+  for (const l of layers) {
+    tctx.beginPath();
+    tctx.ellipse(cx,cy+l.y-40,l.w*0.35,5,0,0,Math.PI*2);
+    tctx.fill();
+  }
+
+  // Photo grain
+  tctx.fillStyle='rgba(130,100,40,0.05)';
+  for(let i=0;i<1200;i++) tctx.fillRect(Math.random()*tw,Math.random()*th,1,1);
 }
 
-function drawStar5(cx, cy, r) {
+function drawStar2d(ctx,cx,cy,r,pts) {
   ctx.beginPath();
-  for (let i = 0; i < 10; i++) {
-    const angle = (i * Math.PI / 5) - Math.PI / 2;
-    const rad = i % 2 === 0 ? r : r * 0.4;
-    const x = cx + Math.cos(angle) * rad;
-    const y = cy + Math.sin(angle) * rad;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  for(let i=0;i<pts*2;i++){
+    const a=(i*Math.PI/pts)-Math.PI/2;
+    const rd=i%2===0?r:r*0.4;
+    const x=cx+Math.cos(a)*rd, y=cy+Math.sin(a)*rd;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
   }
-  ctx.closePath();
-  ctx.fillStyle = '#e8c96a';
-  ctx.fill();
+  ctx.closePath(); ctx.fill();
 }
 
-// ── Loop ─────────────────────────────────────────────────────
-function loop() {
-  update();
-  draw();
-  requestAnimationFrame(loop);
+// ── Game loop ─────────────────────────────────────────────────
+const clock = new THREE.Clock();
+const camSmooth = new THREE.Vector3();
+const lookSmooth = new THREE.Vector3();
+const SPEED = 6;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  // Movement
+  if (mode==='play') {
+    const dir=new THREE.Vector3();
+    if (keys['ArrowLeft'] ||keys['KeyA']) dir.x-=1;
+    if (keys['ArrowRight']||keys['KeyD']) dir.x+=1;
+    if (keys['ArrowUp']   ||keys['KeyW']) dir.z-=1;
+    if (keys['ArrowDown'] ||keys['KeyS']) dir.z+=1;
+
+    if (dir.length()>0) {
+      dir.normalize();
+      // Smooth character rotation
+      const tAngle=Math.atan2(dir.x,dir.z);
+      let diff=tAngle-charGroup.rotation.y;
+      while(diff>Math.PI) diff-=Math.PI*2;
+      while(diff<-Math.PI) diff+=Math.PI*2;
+      charGroup.rotation.y+=diff*0.18;
+
+      const nx=charGroup.position.x+dir.x*SPEED*dt;
+      const nz=charGroup.position.z+dir.z*SPEED*dt;
+      if (!blocked(nx,charGroup.position.z)) charGroup.position.x=nx;
+      if (!blocked(charGroup.position.x,nz)) charGroup.position.z=nz;
+
+      // Walk animation
+      const t=Date.now()/140;
+      legL.rotation.x= Math.sin(t)*0.55;
+      legR.rotation.x=-Math.sin(t)*0.55;
+      charBody.rotation.z=Math.sin(t*2)*0.02;
+    } else {
+      legL.rotation.x*=0.8; legR.rotation.x*=0.8;
+    }
+  }
+
+  // Float items
+  const now=Date.now()/1000;
+  for (const item of itemsData) {
+    if (item.collected && !item.isCase) continue;
+    if (item.isNote) {
+      item.mesh.position.y=0.85+Math.sin(now*1.4+item.mesh.position.x)*0.12;
+      item.mesh.rotation.y+=0.018;
+    }
+  }
+
+  // Third-person camera: stays behind character
+  const behind=new THREE.Vector3(
+    -Math.sin(charGroup.rotation.y)*5.5,
+    3.6,
+    -Math.cos(charGroup.rotation.y)*5.5
+  ).add(charGroup.position);
+  camSmooth.lerp(behind,0.06);
+  camera.position.copy(camSmooth);
+
+  const lookAt=charGroup.position.clone().add(new THREE.Vector3(0,1.4,0));
+  lookSmooth.lerp(lookAt,0.08);
+  camera.lookAt(lookSmooth);
+
+  // Interact hint
+  const near = mode==='play' ? getNear() : null;
+  if (near) {
+    interactEl.style.display='block';
+    hintTextEl.textContent=near.isCase?'Koffer untersuchen':'Aufheben';
+  } else {
+    interactEl.style.display='none';
+  }
+
+  renderer.render(scene,camera);
 }
-loop();
+
+animate();
 </script>
 </body>
 </html>
