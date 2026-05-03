@@ -27,7 +27,7 @@
 
   #controls-hint {
     position: fixed; bottom: 14px; right: 14px;
-    color: #333; font-size: 11px; text-align: right; line-height: 2;
+    color: #444; font-size: 11px; text-align: right; line-height: 2;
   }
 
   /* Dialog */
@@ -73,7 +73,7 @@
 
 <div id="hud">GEFUNDENE ZAHLEN<div class="nums" id="nums">_ _ _</div></div>
 <div id="interact-hint"><span>[E]</span> <span id="hint-text">Aufheben</span></div>
-<div id="controls-hint">WASD · Bewegen<br>E · Interagieren</div>
+<div id="controls-hint">W / S · Vor / Zurück<br>A / D · Drehen<br>E · Interagieren</div>
 
 <div id="dialog">
   <div class="dbox">
@@ -122,21 +122,73 @@ scene.fog = new THREE.FogExp2(0x0a0a12, 0.045);
 const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 80);
 
 // ── Lighting ─────────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0x303050, 2));
+scene.add(new THREE.AmbientLight(0x504860, 3));
 
-const ceiling = new THREE.PointLight(0xfff0cc, 3.5, 20);
-ceiling.position.set(0, 3.8, 0);
-ceiling.castShadow = true;
-ceiling.shadow.mapSize.setScalar(1024);
-scene.add(ceiling);
+const ceilLight = new THREE.PointLight(0xfff0cc, 4, 22);
+ceilLight.position.set(0, 3.8, 0);
+ceilLight.castShadow = true;
+ceilLight.shadow.mapSize.setScalar(1024);
+scene.add(ceilLight);
 
-const moodA = new THREE.PointLight(0x2244bb, 1, 12);
+const moodA = new THREE.PointLight(0x2244bb, 0.8, 12);
 moodA.position.set(-9, 2, -9);
 scene.add(moodA);
 
-const moodB = new THREE.PointLight(0x6622aa, 0.7, 10);
+const moodB = new THREE.PointLight(0x6622aa, 0.5, 10);
 moodB.position.set(9, 2, -9);
 scene.add(moodB);
+
+// ── Wall candles ──────────────────────────────────────────────
+const candleLights = [];
+
+function makeCandle(x, y, z) {
+  const g = new THREE.Group();
+
+  // Wax body
+  const wax = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.07, 0.28, 8),
+    new THREE.MeshStandardMaterial({ color: 0xf0e8d0, roughness: 0.9 })
+  );
+  wax.position.y = 0.14;
+  wax.castShadow = true;
+  g.add(wax);
+
+  // Flame (small glowing sphere)
+  const flame = new THREE.Mesh(
+    new THREE.SphereGeometry(0.05, 6, 6),
+    new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff6600, emissiveIntensity: 2, roughness: 1 })
+  );
+  flame.position.y = 0.34;
+  g.add(flame);
+  g._flame = flame;
+
+  // Wall sconce bracket (small box)
+  const bracket = new THREE.Mesh(
+    new THREE.BoxGeometry(0.18, 0.06, 0.18),
+    new THREE.MeshStandardMaterial({ color: 0x4a3820, roughness: 0.8 })
+  );
+  bracket.position.y = 0.03;
+  g.add(bracket);
+
+  // Point light
+  const light = new THREE.PointLight(0xff9933, 1.8, 6);
+  light.position.y = 0.4;
+  g.add(light);
+  candleLights.push({ light, flame: g._flame });
+
+  g.position.set(x, y, z);
+  scene.add(g);
+  return g;
+}
+
+// Place candles along the walls
+makeCandle(-9.5, 2.0, -6);
+makeCandle(-9.5, 2.0,  4);
+makeCandle( 9.5, 2.0, -6);
+makeCandle( 9.5, 2.0,  4);
+makeCandle(-4,   2.0, -10.5);
+makeCandle( 4,   2.0, -10.5);
+makeCandle( 0,   2.0,  10.5);
 
 // ── Helpers ───────────────────────────────────────────────────
 function mesh(geo, mat, x=0, y=0, z=0, ry=0) {
@@ -502,7 +554,8 @@ function drawStar2d(ctx,cx,cy,r,pts) {
 const clock = new THREE.Clock();
 const camSmooth = new THREE.Vector3();
 const lookSmooth = new THREE.Vector3();
-const SPEED = 6;
+const SPEED     = 6;
+const ROT_SPEED = 2.8; // radians per second
 
 function animate() {
   requestAnimationFrame(animate);
@@ -510,34 +563,46 @@ function animate() {
 
   // Movement
   if (mode==='play') {
-    const dir=new THREE.Vector3();
-    if (keys['ArrowLeft'] ||keys['KeyA']) dir.x-=1;
-    if (keys['ArrowRight']||keys['KeyD']) dir.x+=1;
-    if (keys['ArrowUp']   ||keys['KeyW']) dir.z-=1;
-    if (keys['ArrowDown'] ||keys['KeyS']) dir.z+=1;
+    let moving = false;
 
-    if (dir.length()>0) {
-      dir.normalize();
-      // Smooth character rotation
-      const tAngle=Math.atan2(dir.x,dir.z);
-      let diff=tAngle-charGroup.rotation.y;
-      while(diff>Math.PI) diff-=Math.PI*2;
-      while(diff<-Math.PI) diff+=Math.PI*2;
-      charGroup.rotation.y+=diff*0.18;
+    // A / D → smooth rotation
+    if (keys['ArrowLeft']  || keys['KeyA']) charGroup.rotation.y += ROT_SPEED * dt;
+    if (keys['ArrowRight'] || keys['KeyD']) charGroup.rotation.y -= ROT_SPEED * dt;
 
-      const nx=charGroup.position.x+dir.x*SPEED*dt;
-      const nz=charGroup.position.z+dir.z*SPEED*dt;
-      if (!blocked(nx,charGroup.position.z)) charGroup.position.x=nx;
-      if (!blocked(charGroup.position.x,nz)) charGroup.position.z=nz;
+    // W / S → forward / backward along facing direction
+    let fwd = 0;
+    if (keys['ArrowUp']   || keys['KeyW']) fwd =  1;
+    if (keys['ArrowDown'] || keys['KeyS']) fwd = -1;
 
-      // Walk animation
-      const t=Date.now()/140;
-      legL.rotation.x= Math.sin(t)*0.55;
-      legR.rotation.x=-Math.sin(t)*0.55;
-      charBody.rotation.z=Math.sin(t*2)*0.02;
-    } else {
-      legL.rotation.x*=0.8; legR.rotation.x*=0.8;
+    if (fwd !== 0) {
+      moving = true;
+      const dx = Math.sin(charGroup.rotation.y) * SPEED * fwd * dt;
+      const dz = Math.cos(charGroup.rotation.y) * SPEED * fwd * dt;
+      const nx = charGroup.position.x + dx;
+      const nz = charGroup.position.z + dz;
+      if (!blocked(nx, charGroup.position.z)) charGroup.position.x = nx;
+      if (!blocked(charGroup.position.x, nz)) charGroup.position.z = nz;
     }
+
+    // Walk animation
+    if (moving) {
+      const t = Date.now() / 140;
+      legL.rotation.x =  Math.sin(t) * 0.55;
+      legR.rotation.x = -Math.sin(t) * 0.55;
+      charBody.rotation.z = Math.sin(t * 2) * 0.02;
+    } else {
+      legL.rotation.x *= 0.8;
+      legR.rotation.x *= 0.8;
+    }
+  }
+
+  // Candle flicker
+  const flicker = Date.now() / 1000;
+  for (const c of candleLights) {
+    const noise = Math.sin(flicker * 7.3 + c.light.id) * 0.15
+                + Math.sin(flicker * 13.1 + c.light.id * 2) * 0.08;
+    c.light.intensity = 1.8 + noise;
+    c.flame.scale.setScalar(1 + noise * 0.4);
   }
 
   // Float items
