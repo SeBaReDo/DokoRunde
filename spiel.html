@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Erinnerungen — Das Spiel</title>
+<style>
+  :root {
+    --bg: #0d0f0e;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --cream: #f0e8d0;
+    --muted: #8a9e8f;
+    --text: #ddd8cc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  canvas {
+    border: 2px solid #2a3a2f;
+    border-radius: 8px;
+    display: block;
+  }
+  #ui {
+    width: 800px;
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 4px;
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  #lives { color: var(--gold); }
+  #level-name { color: var(--cream); }
+</style>
+</head>
+<body>
+<div id="ui">
+  <span id="lives">♥ ♥ ♥</span>
+  <span id="level-name">ERINNERUNGEN</span>
+  <span id="score">Erinnerungen: 0/0</span>
+</div>
+<canvas id="game" width="800" height="500"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+
+// states: 'story' | 'playing' | 'gameover' | 'levelcomplete' | 'victory'
+let state = 'story';
+let currentLevel = 0;
+let currentStory = 0;
+let score = 0;
+let lives = 3;
+let keys = {};
+
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space' || e.code === 'Enter') handleConfirm();
+  e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+function handleConfirm() {
+  if (state === 'story') {
+    startLevel(currentLevel);
+  } else if (state === 'levelcomplete') {
+    currentLevel++;
+    if (currentLevel >= levels.length) {
+      state = 'victory';
+    } else {
+      currentStory = currentLevel;
+      state = 'story';
+    }
+  } else if (state === 'gameover' || state === 'victory') {
+    lives = 3;
+    score = 0;
+    currentLevel = 0;
+    currentStory = 0;
+    state = 'story';
+  }
+}
+
+// ---- Player ----
+const GRAVITY   = 0.5;
+const JUMP_FORCE = -12;
+const SPEED     = 4;
+let player = {};
+
+function resetPlayer() {
+  player = {
+    x: 80, y: 300, w: 28, h: 36,
+    vx: 0, vy: 0,
+    onGround: false,
+    jumpCount: 0, maxJumps: 2,
+    invincible: 0,
+    facing: 1,
+    _jumpHeld: false,
+    color: '#e8874a',
+  };
+}
+
+// ---- Stories ----
+const stories = [
+  {
+    title: "Kapitel 1: Die Schulzeit",
+    text: "2003. Die Aula riecht nach Kreide und Mittagessen.\nJeder kennt jeden — und irgendwie haben wir alle\ngenau dieselben schlechten Entscheidungen getroffen.",
+    color: '#4a9ee8',
+    sub: "Finde alle Erinnerungen. Komm heil durch die Schulmensa.",
+  },
+  {
+    title: "Kapitel 2: Der erste Urlaub",
+    text: "Sommer 2007. Sieben Jungs, ein zu kleines Auto,\neine Ferienwohnung die aussah wie ein Tatortfoto.\nDie beste Woche unseres Lebens.",
+    color: '#4caf80',
+    sub: "Sammle die verlorenen Urlaubsfotos ein.",
+  },
+  {
+    title: "Kapitel 3: Die WG-Jahre",
+    text: "Irgendwann zwischen Studium und erstem Job.\nEin Kühlschrank. Fünf Hungrige.\nEin ewiger Streit um die letzte Tiefkühlpizza.",
+    color: '#c47ee8',
+    sub: "Kämpfe dich durch den Kühlschrank.",
+  },
+];
+
+// ---- Levels ----
+const levels = [
+  {
+    name: "Die Schulzeit",
+    bgTop: '#0d1520', bgBot: '#1a2535',
+    platforms: [
+      { x: 0,   y: 460, w: 800, h: 40, color: '#2a3a5f' },
+      { x: 100, y: 370, w: 140, h: 16, color: '#3a4a6f' },
+      { x: 320, y: 310, w: 120, h: 16, color: '#3a4a6f' },
+      { x: 500, y: 250, w: 100, h: 16, color: '#3a4a6f' },
+      { x: 650, y: 200, w: 140, h: 16, color: '#3a4a6f' },
+      { x: 200, y: 240, w: 80,  h: 16, color: '#3a4a6f' },
+      { x: 420, y: 180, w: 60,  h: 16, color: '#c9a84c' },
+    ],
+    collectibles: [
+      { x: 160, y: 345, label: "Stundenplan 2003" },
+      { x: 380, y: 285, label: "Klassenphoto" },
+      { x: 540, y: 225, label: "Zeugnis (geheftet)" },
+      { x: 240, y: 215, label: "Pausenbrot" },
+      { x: 700, y: 175, label: "Tagebuch" },
+    ],
+    enemies: [
+      { x: 110, y: 430, w: 28, h: 28, vx: 1.5, bounceLeft: 50,  bounceRight: 300, color: '#e84a4a' },
+      { x: 400, y: 430, w: 28, h: 28, vx: -1.2, bounceLeft: 350, bounceRight: 600, color: '#e84a4a' },
+    ],
+    goal: { x: 740, y: 160 },
+  },
+  {
+    name: "Der erste Urlaub",
+    bgTop: '#0d1e15', bgBot: '#102515',
+    platforms: [
+      { x: 0,   y: 460, w: 220, h: 40, color: '#3a3010' },
+      { x: 260, y: 460, w: 100, h: 40, color: '#3a3010' },
+      { x: 400, y: 460, w: 400, h: 40, color: '#3a3010' },
+      { x: 100, y: 360, w: 120, h: 16, color: '#2e7d52' },
+      { x: 300, y: 300, w: 100, h: 16, color: '#2e7d52' },
+      { x: 470, y: 340, w: 120, h: 16, color: '#2e7d52' },
+      { x: 640, y: 270, w: 100, h: 16, color: '#2e7d52' },
+      { x: 200, y: 220, w: 80,  h: 16, color: '#2e7d52' },
+      { x: 450, y: 190, w: 80,  h: 16, color: '#2e7d52' },
+      { x: 650, y: 160, w: 130, h: 16, color: '#c9a84c' },
+    ],
+    collectibles: [
+      { x: 150, y: 335, label: "Wegwerfkamera" },
+      { x: 340, y: 275, label: "Urlaubstagebuch" },
+      { x: 510, y: 315, label: "Eis am Stiel" },
+      { x: 235, y: 195, label: "Mixtape" },
+      { x: 490, y: 165, label: "Strandmuschel" },
+    ],
+    enemies: [
+      { x: 300, y: 430, w: 28, h: 28, vx: 1.8,  bounceLeft: 260, bounceRight: 395, color: '#c9a84c' },
+      { x: 500, y: 430, w: 28, h: 28, vx: -1.5, bounceLeft: 400, bounceRight: 780, color: '#c9a84c' },
+      { x: 350, y: 270, w: 28, h: 28, vx: 1.2,  bounceLeft: 300, bounceRight: 395, color: '#c9a84c' },
+    ],
+    goal: { x: 700, y: 120 },
+  },
+  {
+    name: "Die WG-Jahre",
+    bgTop: '#150d1e', bgBot: '#200d25',
+    platforms: [
+      { x: 0,   y: 460, w: 800, h: 40, color: '#2a1f35' },
+      { x: 80,  y: 390, w: 100, h: 16, color: '#4a2f6f' },
+      { x: 250, y: 340, w: 80,  h: 16, color: '#4a2f6f' },
+      { x: 380, y: 280, w: 120, h: 16, color: '#4a2f6f' },
+      { x: 560, y: 230, w: 100, h: 16, color: '#4a2f6f' },
+      { x: 680, y: 170, w: 100, h: 16, color: '#4a2f6f' },
+      { x: 150, y: 260, w: 80,  h: 16, color: '#4a2f6f' },
+      { x: 320, y: 200, w: 60,  h: 16, color: '#4a2f6f' },
+      { x: 480, y: 160, w: 60,  h: 16, color: '#c47ee8' },
+    ],
+    collectibles: [
+      { x: 120, y: 365, label: "Leere Pizza-Schachtel" },
+      { x: 285, y: 315, label: "WG-Putzplan (unbenutzt)" },
+      { x: 430, y: 255, label: "Bier vom Vortag" },
+      { x: 185, y: 235, label: "Mietvertrag" },
+      { x: 715, y: 145, label: "Gemeinsames Foto" },
+    ],
+    enemies: [
+      { x: 100, y: 430, w: 28, h: 28, vx: 1.5,  bounceLeft: 20,  bounceRight: 240, color: '#c47ee8' },
+      { x: 400, y: 430, w: 28, h: 28, vx: -2.0, bounceLeft: 250, bounceRight: 550, color: '#c47ee8' },
+      { x: 600, y: 430, w: 28, h: 28, vx: 1.8,  bounceLeft: 550, bounceRight: 780, color: '#c47ee8' },
+      { x: 390, y: 250, w: 28, h: 28, vx: 1.2,  bounceLeft: 380, bounceRight: 495, color: '#c47ee8' },
+    ],
+    goal: { x: 515, y: 120 },
+  },
+];
+
+// ---- Active level (mutable copies) ----
+let levelData = null;
+let collectiblesLeft = 0;
+
+function startLevel(idx) {
+  const src = levels[idx];
+  resetPlayer();
+  levelData = {
+    ...src,
+    collectibles: src.collectibles.map(c => ({ ...c, r: 14, collected: false, popup: null })),
+    enemies: src.enemies.map(e => ({ ...e })),
+  };
+  collectiblesLeft = levelData.collectibles.length;
+  updateHUD();
+  state = 'playing';
+}
+
+function updateHUD() {
+  document.getElementById('lives').textContent = '♥ '.repeat(lives).trim();
+  document.getElementById('level-name').textContent =
+    levelData ? levelData.name.toUpperCase() : 'ERINNERUNGEN';
+  const total = levelData ? levelData.collectibles.length : 0;
+  const collected = levelData ? levelData.collectibles.filter(c => c.collected).length : 0;
+  document.getElementById('score').textContent = `Erinnerungen: ${collected}/${total}`;
+}
+
+// ---- Collision ----
+function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
+function resolvePlatforms() {
+  player.onGround = false;
+  for (const p of levelData.platforms) {
+    if (!rectsOverlap(player.x, player.y, player.w, player.h, p.x, p.y, p.w, p.h)) continue;
+    const overlapL = (player.x + player.w) - p.x;
+    const overlapR = (p.x + p.w) - player.x;
+    const overlapT = (player.y + player.h) - p.y;
+    const overlapB = (p.y + p.h) - player.y;
+    const min = Math.min(overlapL, overlapR, overlapT, overlapB);
+    if (min === overlapT && player.vy >= 0) {
+      player.y = p.y - player.h;
+      player.vy = 0;
+      player.onGround = true;
+      player.jumpCount = 0;
+    } else if (min === overlapB && player.vy < 0) {
+      player.y = p.y + p.h;
+      player.vy = 0;
+    } else if (min === overlapL) {
+      player.x = p.x - player.w; player.vx = 0;
+    } else if (min === overlapR) {
+      player.x = p.x + p.w; player.vx = 0;
+    }
+  }
+}
+
+// ---- Update ----
+function update() {
+  if (state !== 'playing') return;
+
+  player.vx = 0;
+  if (keys['ArrowLeft']  || keys['KeyA']) { player.vx = -SPEED; player.facing = -1; }
+  if (keys['ArrowRight'] || keys['KeyD']) { player.vx =  SPEED; player.facing =  1; }
+
+  const wantJump = keys['ArrowUp'] || keys['KeyW'] || keys['Space'];
+  if (wantJump && !player._jumpHeld && player.jumpCount < player.maxJumps) {
+    player.vy = JUMP_FORCE;
+    player.jumpCount++;
+    player._jumpHeld = true;
+  }
+  if (!wantJump) player._jumpHeld = false;
+
+  player.vy = Math.min(player.vy + GRAVITY, 18);
+  player.x += player.vx;
+  player.y += player.vy;
+  player.x = Math.max(0, Math.min(player.x, W - player.w));
+
+  resolvePlatforms();
+
+  if (player.y > H + 50) {
+    lives--;
+    updateHUD();
+    if (lives <= 0) { state = 'gameover'; return; }
+    resetPlayer();
+    return;
+  }
+
+  if (player.invincible > 0) player.invincible--;
+
+  // Enemies
+  for (let i = levelData.enemies.length - 1; i >= 0; i--) {
+    const e = levelData.enemies[i];
+    e.x += e.vx;
+    if (e.x <= e.bounceLeft || e.x + e.w >= e.bounceRight) e.vx *= -1;
+
+    if (player.invincible === 0 &&
+        rectsOverlap(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) {
+      if (player.vy > 0 && player.y + player.h < e.y + e.h * 0.6) {
+        levelData.enemies.splice(i, 1);
+        player.vy = JUMP_FORCE * 0.7;
+      } else {
+        lives--;
+        player.invincible = 90;
+        updateHUD();
+        if (lives <= 0) { state = 'gameover'; return; }
+      }
+    }
+  }
+
+  // Collectibles
+  for (const c of levelData.collectibles) {
+    if (c.collected) {
+      if (c.popup) { c.popup.timer--; c.popup.y -= 0.4; if (c.popup.timer <= 0) c.popup = null; }
+      continue;
+    }
+    const dx = (player.x + player.w / 2) - c.x;
+    const dy = (player.y + player.h / 2) - c.y;
+    if (Math.sqrt(dx * dx + dy * dy) < c.r + 14) {
+      c.collected = true;
+      c.popup = { text: c.label, timer: 90, x: c.x, y: c.y };
+      score++;
+      collectiblesLeft--;
+      updateHUD();
+    }
+  }
+
+  // Goal
+  const g = levelData.goal;
+  if (collectiblesLeft === 0 &&
+      rectsOverlap(player.x, player.y, player.w, player.h, g.x - 16, g.y - 32, 32, 48)) {
+    state = 'levelcomplete';
+  }
+}
+
+// ---- Draw ----
+function draw() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  if (levelData) {
+    grad.addColorStop(0, levelData.bgTop);
+    grad.addColorStop(1, levelData.bgBot);
+  } else {
+    grad.addColorStop(0, '#0d0f0e');
+    grad.addColorStop(1, '#0d0f0e');
+  }
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  if (state === 'story')         drawStory();
+  else if (state === 'playing')  { drawLevel(); drawPlayer(); drawHints(); }
+  else if (state === 'levelcomplete') { drawLevel(); drawPlayer(); drawOverlay('ERINNERUNG GESPEICHERT', '[ ENTER ] Weiter', '#4caf80'); }
+  else if (state === 'gameover') { ctx.fillStyle='#0d0f0e'; ctx.fillRect(0,0,W,H); drawOverlay('GAME OVER', '[ ENTER ] Nochmal', '#e84a4a'); }
+  else if (state === 'victory')  { ctx.fillStyle='#0d0f0e'; ctx.fillRect(0,0,W,H); drawVictory(); }
+}
+
+function drawStory() {
+  const s = stories[currentStory] || stories[0];
+  ctx.fillStyle = '#0d0f0e'; ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = s.color + '55'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(60, 90);  ctx.lineTo(W - 60, 90);  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(60, H-90); ctx.lineTo(W-60, H-90); ctx.stroke();
+
+  ctx.fillStyle = s.color;
+  ctx.font = 'bold 28px "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(s.title, W / 2, 140);
+
+  ctx.fillStyle = '#ddd8cc';
+  ctx.font = '18px "Segoe UI", sans-serif';
+  s.text.split('\n').forEach((line, i) => ctx.fillText(line, W / 2, 220 + i * 34));
+
+  ctx.fillStyle = '#8a9e8f';
+  ctx.font = '14px "Segoe UI", sans-serif';
+  ctx.fillText(s.sub, W / 2, 340);
+
+  ctx.fillStyle = s.color;
+  ctx.font = '13px "Segoe UI", sans-serif';
+  ctx.fillText('[ ENTER / LEERTASTE ]  Spielen', W / 2, H - 54);
+
+  ctx.fillStyle = '#8a9e8f';
+  ctx.font = '12px "Segoe UI", sans-serif';
+  ctx.fillText('← → bewegen  |  ↑ / W / LEERTASTE springen  |  Doppelsprung möglich  |  Gegner von oben besiegen', W / 2, H - 28);
+}
+
+function drawLevel() {
+  // Platforms
+  for (const p of levelData.platforms) {
+    ctx.fillStyle = p.color || '#2a3a2f';
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.fillRect(p.x, p.y, p.w, 3);
+  }
+
+  // Collectibles
+  for (const c of levelData.collectibles) {
+    if (!c.collected) {
+      ctx.shadowColor = '#c9a84c'; ctx.shadowBlur = 14;
+      drawStar(c.x, c.y, 5, 10, 5, '#c9a84c');
+      ctx.shadowBlur = 0;
+    }
+    if (c.popup) {
+      ctx.globalAlpha = Math.min(1, c.popup.timer / 20);
+      ctx.fillStyle = '#e8c96a';
+      ctx.font = 'bold 13px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`"${c.popup.text}"`, c.popup.x, c.popup.y - 20);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Enemies
+  for (const e of levelData.enemies) {
+    ctx.fillStyle = e.color || '#e84a4a';
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+    ctx.fillStyle = '#fff';
+    const ex = e.vx > 0 ? e.x + e.w - 10 : e.x + 4;
+    ctx.fillRect(ex, e.y + 6, 6, 6);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(ex + (e.vx > 0 ? 2 : 1), e.y + 8, 3, 3);
+  }
+
+  // Goal door
+  const g = levelData.goal;
+  const ready = collectiblesLeft === 0;
+  ctx.globalAlpha = ready ? 1 : 0.3;
+  ctx.shadowColor = '#c9a84c'; ctx.shadowBlur = ready ? 20 : 0;
+  ctx.fillStyle = '#c9a84c'; ctx.fillRect(g.x - 14, g.y - 30, 28, 44);
+  ctx.fillStyle = '#0d0f0e'; ctx.fillRect(g.x - 10, g.y - 26, 20, 36);
+  if (ready) drawStar(g.x, g.y - 44, 5, 14, 7, '#e8c96a');
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+}
+
+function drawHints() {
+  if (collectiblesLeft > 0) {
+    ctx.fillStyle = '#8a9e8f';
+    ctx.font = '12px "Segoe UI", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(`Noch ${collectiblesLeft} Erinnerung${collectiblesLeft !== 1 ? 'en' : ''} zu finden`, W - 12, 24);
+    ctx.textAlign = 'left';
+  }
+}
+
+function drawPlayer() {
+  const p = player;
+  if (p.invincible > 0 && Math.floor(p.invincible / 6) % 2 === 0) return;
+  ctx.save();
+  ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+  if (p.facing === -1) ctx.scale(-1, 1);
+
+  ctx.fillStyle = p.color;
+  ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+
+  ctx.fillStyle = '#f5d5b0';
+  ctx.fillRect(-p.w/2 + 4, -p.h/2 - 12, p.w - 8, 14);
+
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-p.w/2 + 8, -p.h/2 - 8, 4, 4);
+
+  const leg = Math.sin(Date.now() / 100) * (Math.abs(p.vx) > 0 ? 5 : 0);
+  ctx.fillStyle = '#7a4020';
+  ctx.fillRect(-p.w/2 + 2,          p.h/2 - 2 + leg, 10, 8);
+  ctx.fillRect(-p.w/2 + p.w - 12,   p.h/2 - 2 - leg, 10, 8);
+  ctx.restore();
+  ctx.textAlign = 'left';
+}
+
+function drawStar(cx, cy, spikes, outerR, innerR, color) {
+  const t = Date.now() / 600;
+  ctx.beginPath();
+  for (let i = 0; i < spikes * 2; i++) {
+    const angle = (i * Math.PI / spikes) - Math.PI / 2 + Math.sin(t) * 0.1;
+    const r = i % 2 === 0 ? outerR : innerR;
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = color || '#c9a84c';
+  ctx.fill();
+}
+
+function drawOverlay(title, sub, color) {
+  ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = color;
+  ctx.font = 'bold 40px "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(title, W / 2, H / 2 - 20);
+  ctx.fillStyle = '#ddd8cc';
+  ctx.font = '18px "Segoe UI", sans-serif';
+  ctx.fillText(sub, W / 2, H / 2 + 24);
+}
+
+function drawVictory() {
+  ctx.fillStyle = '#c9a84c';
+  ctx.font = 'bold 34px "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('ALLE ERINNERUNGEN GERETTET!', W / 2, 160);
+
+  ctx.fillStyle = '#ddd8cc';
+  ctx.font = '18px "Segoe UI", sans-serif';
+  ctx.fillText(`Gesammelte Erinnerungen: ${score}`, W / 2, 220);
+
+  ctx.fillStyle = '#8a9e8f';
+  ctx.font = '15px "Segoe UI", sans-serif';
+  ctx.fillText('Danke fürs Spielen — und für all die guten Zeiten.', W / 2, 270);
+
+  for (let i = 0; i < 8; i++) drawStar(80 + i * 90, 360, 5, 20, 9, '#c9a84c');
+
+  ctx.fillStyle = '#c9a84c';
+  ctx.font = '14px "Segoe UI", sans-serif';
+  ctx.fillText('[ ENTER ] Nochmal spielen', W / 2, H - 50);
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
