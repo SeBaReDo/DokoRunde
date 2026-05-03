@@ -116,27 +116,27 @@ window.addEventListener('resize', () => {
 
 // ── Scene & Camera ───────────────────────────────────────────
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a12);
-scene.fog = new THREE.FogExp2(0x0a0a12, 0.045);
+scene.background = new THREE.Color(0x3a3a4a);
+scene.fog = new THREE.Fog(0x3a3a4a, 18, 35);
 
 const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 80);
 
 // ── Lighting ─────────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0x504860, 3));
+scene.add(new THREE.AmbientLight(0xfff8f0, 5));
 
-const ceilLight = new THREE.PointLight(0xfff0cc, 4, 22);
+const ceilLight = new THREE.PointLight(0xfff5e0, 8, 30);
 ceilLight.position.set(0, 3.8, 0);
 ceilLight.castShadow = true;
 ceilLight.shadow.mapSize.setScalar(1024);
 scene.add(ceilLight);
 
-const moodA = new THREE.PointLight(0x2244bb, 0.8, 12);
-moodA.position.set(-9, 2, -9);
-scene.add(moodA);
-
-const moodB = new THREE.PointLight(0x6622aa, 0.5, 10);
-moodB.position.set(9, 2, -9);
-scene.add(moodB);
+// Extra fill lights so corners stay bright
+const fillA = new THREE.PointLight(0xfff0dd, 3, 18);
+fillA.position.set(-6, 3.5, -6);
+scene.add(fillA);
+const fillB = new THREE.PointLight(0xfff0dd, 3, 18);
+fillB.position.set(6, 3.5, 6);
+scene.add(fillB);
 
 // ── Wall candles ──────────────────────────────────────────────
 const candleLights = [];
@@ -202,19 +202,28 @@ function mesh(geo, mat, x=0, y=0, z=0, ry=0) {
 }
 
 // ── Room ─────────────────────────────────────────────────────
-const floorMat  = new THREE.MeshStandardMaterial({ color: 0x1a1a28, roughness: 0.95 });
-const wallMat   = new THREE.MeshStandardMaterial({ color: 0x1c1c2c, roughness: 0.9  });
-const ceilMat   = new THREE.MeshStandardMaterial({ color: 0x101018 });
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x8b5e3c, roughness: 0.85, metalness: 0.0 }); // warm wood
+const wallMat  = new THREE.MeshStandardMaterial({ color: 0xb0b0b8, roughness: 0.9  }); // light gray
+const ceilMat  = new THREE.MeshStandardMaterial({ color: 0xd0d0d8 });                  // near-white ceiling
 
 mesh(new THREE.PlaneGeometry(22,22), floorMat, 0,0,0,-Math.PI/2);
 mesh(new THREE.PlaneGeometry(22,22), ceilMat,  0,4,0, Math.PI/2);
-mesh(new THREE.BoxGeometry(22,4,0.3), wallMat, 0,2,-11);
-mesh(new THREE.BoxGeometry(22,4,0.3), wallMat, 0,2, 11);
-mesh(new THREE.BoxGeometry(0.3,4,22), wallMat,-11,2, 0);
-mesh(new THREE.BoxGeometry(0.3,4,22), wallMat, 11,2, 0);
+
+// Store walls so camera raycaster can check them
+const wallMeshes = [];
+function addWall(geo, x, y, z) {
+  const m = new THREE.Mesh(geo, wallMat);
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m); wallMeshes.push(m); return m;
+}
+addWall(new THREE.BoxGeometry(22,4,0.3),  0, 2,-11);
+addWall(new THREE.BoxGeometry(22,4,0.3),  0, 2, 11);
+addWall(new THREE.BoxGeometry(0.3,4,22),-11, 2,  0);
+addWall(new THREE.BoxGeometry(0.3,4,22), 11, 2,  0);
 
 // Skirting boards
-const skirt = new THREE.MeshStandardMaterial({ color: 0x282838 });
+const skirt = new THREE.MeshStandardMaterial({ color: 0x7a5a3a });
 mesh(new THREE.BoxGeometry(22,0.15,0.08), skirt, 0,0.075,-10.9);
 mesh(new THREE.BoxGeometry(22,0.15,0.08), skirt, 0,0.075, 10.9);
 mesh(new THREE.BoxGeometry(0.08,0.15,22), skirt,-10.9,0.075,0);
@@ -552,8 +561,9 @@ function drawStar2d(ctx,cx,cy,r,pts) {
 
 // ── Game loop ─────────────────────────────────────────────────
 const clock = new THREE.Clock();
-const camSmooth = new THREE.Vector3();
+const camSmooth  = new THREE.Vector3();
 const lookSmooth = new THREE.Vector3();
+const camRay     = new THREE.Raycaster();
 const SPEED     = 6;
 const ROT_SPEED = 2.8; // radians per second
 
@@ -615,17 +625,31 @@ function animate() {
     }
   }
 
-  // Third-person camera: stays behind character
-  const behind=new THREE.Vector3(
-    -Math.sin(charGroup.rotation.y)*5.5,
-    3.6,
-    -Math.cos(charGroup.rotation.y)*5.5
-  ).add(charGroup.position);
-  camSmooth.lerp(behind,0.06);
+  // Third-person camera with wall collision
+  const CAM_DIST = 5.5;
+  const charHead = charGroup.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+  const idealOffset = new THREE.Vector3(
+    -Math.sin(charGroup.rotation.y) * CAM_DIST,
+    3.2,
+    -Math.cos(charGroup.rotation.y) * CAM_DIST
+  );
+  const idealCamPos = charGroup.position.clone().add(idealOffset);
+
+  // Raycast from character head toward ideal camera position
+  const toCam = idealCamPos.clone().sub(charHead);
+  const toCamLen = toCam.length();
+  camRay.set(charHead, toCam.clone().normalize());
+  const wallHits = camRay.intersectObjects(wallMeshes);
+  let safePos = idealCamPos;
+  if (wallHits.length > 0 && wallHits[0].distance < toCamLen) {
+    // Pull camera in front of the wall with a small margin
+    safePos = charHead.clone().add(toCam.normalize().multiplyScalar(wallHits[0].distance - 0.4));
+  }
+  camSmooth.lerp(safePos, 0.1);
   camera.position.copy(camSmooth);
 
-  const lookAt=charGroup.position.clone().add(new THREE.Vector3(0,1.4,0));
-  lookSmooth.lerp(lookAt,0.08);
+  const lookAt = charGroup.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+  lookSmooth.lerp(lookAt, 0.1);
   camera.lookAt(lookSmooth);
 
   // Interact hint
