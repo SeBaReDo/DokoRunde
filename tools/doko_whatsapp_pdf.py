@@ -106,7 +106,7 @@ def chart(rows, present, rank, solos):
     for r in range(0, n + 1, 5):
         if r:
             o.append(f'<text x="{X(r):.1f}" y="{H-8}" font-size="9" fill="#8a8471" text-anchor="middle">{r}</text>')
-    o.append(f'<text x="{W-R}" y="{H-8}" font-size="9" fill="#8a8471" text-anchor="end" dx="14">Rd.</text>')
+    o.append(f'<text x="{L-4}" y="{H-8}" font-size="9" fill="#8a8471" text-anchor="end">Rd.</text>')
     # Linien (Sieger zuletzt/obenauf)
     for p in reversed(rank):
         pl = ' '.join(f'{X(k):.1f},{Y(v):.1f}' for k, v in enumerate(hist[p]))
