@@ -19,12 +19,13 @@ PAGE_W, PAGE_H = 454, 960
 
 def load(path):
     ws = openpyxl.load_workbook(path, data_only=True).worksheets[0]
-    sessions = collections.OrderedDict()
+    sessions = {}
     for r in range(5, ws.max_row + 1):
         v = [c.value for c in ws[r]]
         if v[0]:
-            sessions.setdefault(v[0].strftime('%d.%m.%Y'), []).append(v)
-    return sessions
+            sessions.setdefault(v[0], []).append(v)
+    # chronologisch (die DB-Zeilen sind nicht durchgehend sortiert)
+    return collections.OrderedDict((d.strftime('%d.%m.%Y'), sessions[d]) for d in sorted(sessions))
 
 
 def pts(x, p):
